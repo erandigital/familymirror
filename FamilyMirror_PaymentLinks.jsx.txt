@@ -1,0 +1,544 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+
+// ======================= STRIPE PAYMENT LINKS =======================
+// פשוט מאוד! לינקים מ-Stripe – ללא שרת, ללא קוד מורכב
+const PAYMENT_LINKS = {
+  one_time: "https://buy.stripe.com/4gM5kF6I8aAh4fg0Rc2sM01", // ✅ 7.90 ₪ חד פעמי
+  basic:    "https://buy.stripe.com/4gM5kF6I8aAh4fg0Rc2sM01", // ✅ 9.90 ₪/חודש בסיס
+  basic:    "https://buy.stripe.com/3cIcN7feE6k1aDEfM62sM02", // ✅ 9.90 ₪/חודש בסיס
+  premium:  "https://buy.stripe.com/14A4gBfeE37PcLMfM62sM03", // ✅ 19.90 ₪/חודש פרימיום
+  gold:     "https://buy.stripe.com/eVq28t2rS0ZHbHI43o2sM04", // ✅ 29.90 ₪/חודש גולד
+};
+
+// ======================= DESIGN =======================
+const C = {
+  bg0:"#07030F", bg1:"#0F0520", bg2:"#160830",
+  purple:"#8B5CF6", purpleLight:"#A78BFA",
+  pink:"#EC4899", teal:"#14B8A6", gold:"#F59E0B",
+  white:"#F0EAFE", muted:"#9CA3AF", dim:"#4B5563",
+};
+
+const SCREENS = {
+  HOME:"home", UPLOAD:"upload", ANALYZING:"analyzing",
+  RESULTS:"results", TREE:"tree", PAYMENT:"payment", SHARE:"share",
+};
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+  * { box-sizing:border-box; margin:0; padding:0; }
+  @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes glow    { 0%,100%{box-shadow:0 0 18px #8B5CF655} 50%{box-shadow:0 0 38px #8B5CF6AA} }
+  @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+  @keyframes ripple  { 0%{transform:scale(0.8);opacity:1} 100%{transform:scale(2.2);opacity:0} }
+  @keyframes starTw  { 0%,100%{opacity:0.15} 50%{opacity:0.6} }
+  @keyframes dnaFl   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes checkPop{ 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+  .fadeUp  { animation:fadeUp 0.5s ease both; }
+  .fadeUp1 { animation:fadeUp 0.5s 0.1s ease both; }
+  .fadeUp2 { animation:fadeUp 0.5s 0.2s ease both; }
+  .fadeUp3 { animation:fadeUp 0.5s 0.3s ease both; }
+  .fadeUp4 { animation:fadeUp 0.5s 0.4s ease both; }
+  .float   { animation:float 3.5s ease-in-out infinite; }
+  .glow    { animation:glow 2.5s ease-in-out infinite; }
+
+  .btn-primary { background:linear-gradient(135deg,#8B5CF6,#EC4899); border:none; border-radius:16px; color:#fff; font-weight:800; font-size:15px; cursor:pointer; width:100%; padding:15px 24px; transition:transform 0.15s,box-shadow 0.15s; font-family:inherit; }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px #8B5CF666; }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .btn-secondary { background:transparent; border:1.5px solid #8B5CF6; border-radius:16px; color:#A78BFA; font-weight:700; font-size:14px; cursor:pointer; width:100%; padding:13px 24px; transition:background 0.2s; font-family:inherit; }
+  .btn-secondary:hover { background:#8B5CF611; }
+
+  .btn-gold { background:linear-gradient(135deg,#F59E0B,#D97706); border:none; border-radius:16px; color:#fff; font-weight:800; font-size:15px; cursor:pointer; width:100%; padding:15px 24px; font-family:inherit; transition:transform 0.15s; }
+  .btn-gold:hover { transform:translateY(-2px); box-shadow:0 8px 24px #F59E0B55; }
+
+  .btn-stripe { background:linear-gradient(135deg,#635BFF,#8B5CF6); border:none; border-radius:16px; color:#fff; font-weight:800; font-size:15px; cursor:pointer; width:100%; padding:15px 24px; font-family:inherit; transition:transform 0.15s; display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; }
+  .btn-stripe:hover { transform:translateY(-2px); box-shadow:0 8px 30px #635BFF66; }
+
+  .card { background:linear-gradient(135deg,#8B5CF60D,#EC489905); border:1px solid #8B5CF622; border-radius:20px; padding:18px; margin-bottom:14px; }
+  .card-gold { background:linear-gradient(135deg,#F59E0B0D,transparent); border-color:#F59E0B22; }
+  .card-teal { background:linear-gradient(135deg,#14B8A60D,transparent); border-color:#14B8A622; }
+
+  .upload-box { border:2px dashed #8B5CF644; border-radius:18px; cursor:pointer; flex:1; min-height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:all 0.25s; background:#8B5CF608; }
+  .upload-box:hover { border-color:#8B5CF6; background:#8B5CF614; transform:translateY(-2px); }
+  .upload-box.uploaded { border:2px solid #14B8A6; background:#14B8A60F; }
+  .upload-box.required { border-color:#EC489966; }
+
+  .plan-card { border:1.5px solid rgba(255,255,255,0.07); border-radius:20px; padding:16px; margin-bottom:12px; cursor:pointer; background:rgba(255,255,255,0.02); position:relative; transition:all 0.25s; }
+  .plan-card.selected { border-color:var(--c); box-shadow:0 0 24px color-mix(in srgb, var(--c) 15%, transparent); }
+
+  .nav-item { text-align:center; cursor:pointer; flex:1; padding:4px 0; transition:transform 0.15s; }
+  .nav-item:hover { transform:translateY(-2px); }
+
+  .shimmer-text { background:linear-gradient(90deg,#A78BFA 0%,#EC4899 40%,#F59E0B 60%,#A78BFA 100%); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:shimmer 3s linear infinite; }
+
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-thumb { background:#8B5CF644; border-radius:99px; }
+`;
+
+// ======================= SHARED =======================
+function StyleInjector() {
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.textContent = CSS;
+    document.head.appendChild(el);
+    return () => document.head.removeChild(el);
+  }, []);
+  return null;
+}
+
+function Stars() {
+  return (
+    <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, overflow:"hidden" }}>
+      {Array.from({length:35},(_,i) => (
+        <div key={i} style={{ position:"absolute", left:((i*37+11)%100)+"%", top:((i*53+7)%100)+"%", width:(i%3)+1, height:(i%3)+1, borderRadius:"50%", background:"#fff", animation:`starTw ${2+(i%3)}s ${(i*0.3)%4}s ease-in-out infinite` }}/>
+      ))}
+      <div style={{ position:"absolute", top:"10%", left:"20%", width:200, height:200, borderRadius:"50%", background:"#8B5CF608", filter:"blur(60px)" }}/>
+      <div style={{ position:"absolute", bottom:"15%", right:"10%", width:180, height:180, borderRadius:"50%", background:"#EC489908", filter:"blur(55px)" }}/>
+    </div>
+  );
+}
+
+function DNAIcon() {
+  return (
+    <div style={{ display:"flex", justifyContent:"center", margin:"8px 0", animation:"dnaFl 4s ease-in-out infinite" }}>
+      <svg width="60" height="60" viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#8B5CF6"/><stop offset="100%" stopColor="#EC4899"/></linearGradient>
+          <linearGradient id="dg2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#14B8A6"/><stop offset="100%" stopColor="#8B5CF6"/></linearGradient>
+        </defs>
+        {[0,13,26,39,52].map((y,i) => (
+          <g key={i}>
+            <circle cx={i%2===0?14:50} cy={y+6} r="6" fill="url(#dg1)" opacity={0.9}/>
+            <circle cx={i%2===0?50:14} cy={y+6} r="6" fill="url(#dg2)" opacity={0.9}/>
+            <line x1={i%2===0?20:44} y1={y+6} x2={i%2===0?44:20} y2={y+6} stroke="#A78BFA" strokeWidth="2.5" opacity={0.45} strokeLinecap="round"/>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function UploadBox({ label, emoji, imageData, onImage, required }) {
+  const ref = useRef();
+  const handleFile = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onImage(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+  return (
+    <div className={`upload-box ${imageData?"uploaded":""} ${required&&!imageData?"required":""}`} onClick={() => ref.current.click()}>
+      <input ref={ref} type="file" accept="image/*" onChange={handleFile} style={{ display:"none" }}/>
+      {imageData
+        ? <><img src={imageData} alt={label} style={{ width:60,height:60,borderRadius:14,objectFit:"cover",border:"2px solid #14B8A6" }}/><div style={{ fontSize:10,color:C.teal,marginTop:5,fontWeight:700 }}>✓ הועלה</div></>
+        : <><div style={{ fontSize:30,marginBottom:4 }}>{emoji}</div><div style={{ fontSize:11,color:C.muted,fontWeight:600 }}>{label}</div>{required&&<div style={{ fontSize:9,color:C.pink,marginTop:2 }}>* חובה</div>}</>}
+    </div>
+  );
+}
+
+function AnimatedBar({ pct, color, delay=0 }) {
+  const [w, setW] = useState(0);
+  useEffect(() => { const t=setTimeout(()=>setW(pct),delay+100); return ()=>clearTimeout(t); },[pct,delay]);
+  return (
+    <div style={{ background:"rgba(255,255,255,0.07)", borderRadius:99, height:9, overflow:"hidden" }}>
+      <div style={{ width:w+"%", height:"100%", background:`linear-gradient(90deg,${color},${color}88)`, borderRadius:99, transition:"width 1s cubic-bezier(0.34,1.56,0.64,1)" }}/>
+    </div>
+  );
+}
+
+function CountUp({ target, duration=1200 }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start=null;
+    const step=(ts)=>{ if(!start)start=ts; const p=Math.min((ts-start)/duration,1); setVal(Math.round(p*target)); if(p<1)requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  },[target,duration]);
+  return <span>{val}%</span>;
+}
+
+// ======================= AI =======================
+async function analyzeWithAI(images) {
+  const labels={baby:"הילד/ה",mom:"האמא",dad:"האבא",gpa:"הסבא",gma:"הסבתא"};
+  const content=[];
+  for(const [key,dataUrl] of Object.entries(images).filter(([,v])=>v)){
+    content.push({type:"image",source:{type:"base64",media_type:dataUrl.split(";")[0].split(":")[1],data:dataUrl.split(",")[1]}});
+    content.push({type:"text",text:`התמונה: ${labels[key]}`});
+  }
+  content.push({type:"text",text:`נתח דמיון פנים. JSON בלבד ללא backticks:
+{"summary":"משפט","dominant_parent":"אבא או אמא","dad_pct":50,"mom_pct":50,"features":[{"name":"עיניים","from":"שם","pct":75,"color":"#8B5CF6"},{"name":"אף","from":"שם","pct":65,"color":"#EC4899"},{"name":"שפתיים","from":"שם","pct":70,"color":"#14B8A6"},{"name":"סנטר","from":"שם","pct":60,"color":"#F59E0B"},{"name":"צורת הפנים","from":"שם","pct":80,"color":"#A78BFA"}],"fun_fact":"עובדה","grandparent_note":"תכונה מהסבים"}`});
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content}]})});
+  const data=await res.json();
+  return JSON.parse((data.content||[]).map(b=>b.text||"").join("").replace(/```json|```/g,"").trim());
+}
+
+// ======================= PAYMENT SCREEN =======================
+function PaymentScreen({ go, setPaid }) {
+  const [sel, setSel] = useState("one_time");
+
+  const plans = [
+    { id:"one_time", label:"ניתוח מלא", price:"7.90 ₪", sub:"תשלום חד-פעמי", icon:"🔓", color:C.purple,
+      features:["כל 5 תכונות הפנים","דמיון לסבים","שאלון AI","כרטיס שיתוף"] },
+    { id:"basic", label:"🌱 בסיס", price:"9.90 ₪/חודש", sub:"ביטול בכל עת", icon:"🌱", color:C.teal,
+      features:["ניתוח ילד בחודש","שאלון גנטי","אילן יוחסין","כרטיס שיתוף"] },
+    { id:"premium", label:"👑 פרימיום", price:"19.90 ₪/חודש", sub:"⭐ הפופולרי", icon:"👑", color:C.purple,
+      features:["ילדים מרובים","עדכון אילן","תחזיות","תוכן חודשי","שאלון מורחב"] },
+    { id:"gold", label:"🥇 גולד", price:"29.90 ₪/חודש", sub:"הכי מקיף", icon:"🥇", color:C.gold,
+      features:["הכל מפרימיום","PDF מעוצב","AI גנטיקאי","תמיכה אישית"] },
+  ];
+
+  const selected = plans.find(p=>p.id===sel);
+
+  const handlePay = () => {
+    // פותח את דף התשלום של Stripe בטאב חדש
+    window.open(PAYMENT_LINKS[sel], "_blank");
+    // אחרי 3 שניות – מניחים שהתשלום התחיל ומציגים מסך המתנה
+    setTimeout(() => { setPaid(true); go(SCREENS.HOME); }, 3000);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", padding:"28px 20px 100px", position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative", zIndex:1 }}>
+
+        {/* Header */}
+        <div className="fadeUp" style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
+          <svg width="28" height="18" viewBox="0 0 60 38"><rect width="60" height="38" rx="6" fill="#635BFF"/><rect x="0" y="12" width="60" height="14" fill="#4F46E5" opacity="0.6"/></svg>
+          <div style={{ fontSize:20, fontWeight:900, color:C.white }}>בחרו תוכנית</div>
+        </div>
+        <div className="fadeUp1" style={{ fontSize:12, color:C.muted, marginBottom:20 }}>
+          תשלום מאובטח דרך Stripe 🔒
+        </div>
+
+        {/* Plans */}
+        {plans.map((p,pi) => (
+          <div key={p.id}
+            className={`plan-card fadeUp${Math.min(pi+1,4)} ${sel===p.id?"selected":""}`}
+            style={{ "--c":p.color }}
+            onClick={() => setSel(p.id)}
+          >
+            {p.id==="premium" && (
+              <div style={{ position:"absolute", top:-10, right:14, background:`linear-gradient(135deg,${C.purple},${C.pink})`, fontSize:10, fontWeight:700, padding:"3px 10px", borderRadius:99 }}>⭐ הפופולרי</div>
+            )}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                <div style={{ width:38, height:38, borderRadius:10, background:`${p.color}22`, border:`1px solid ${p.color}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{p.icon}</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:800, color:C.white }}>{p.label}</div>
+                  <div style={{ fontSize:10, color:C.dim }}>{p.sub}</div>
+                </div>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end" }}>
+                <div style={{ fontSize:16, fontWeight:900, color:p.color }}>{p.price}</div>
+                {sel===p.id && <div style={{ fontSize:10, color:C.teal, marginTop:2 }}>✓ נבחר</div>}
+              </div>
+            </div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+              {p.features.map((f,i) => (
+                <div key={i} style={{ background:`${p.color}11`, border:`1px solid ${p.color}33`, borderRadius:99, padding:"3px 9px", fontSize:10, color:p.color }}>{f}</div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Security badges */}
+        <div className="fadeUp4" style={{ display:"flex", justifyContent:"center", gap:20, marginBottom:18 }}>
+          {[["🔒","מוצפן SSL"],["🛡️","PCI Compliant"],["✅","Stripe מאובטח"]].map(([icon,label],i) => (
+            <div key={i} style={{ textAlign:"center" }}>
+              <div style={{ fontSize:20 }}>{icon}</div>
+              <div style={{ fontSize:9, color:C.dim, marginTop:2 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* PAY BUTTON – פותח Stripe Payment Link */}
+        <a
+          href={PAYMENT_LINKS[sel]}
+          target="_blank"
+          rel="noreferrer"
+          className="btn-stripe fadeUp4"
+          onClick={() => setTimeout(()=>{setPaid(true);},5000)}
+          style={{ display:"flex", marginBottom:10 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="white"><path d="M16 2C8.27 2 2 8.27 2 16s6.27 14 14 14 14-6.27 14-14S23.73 2 16 2zm6.36 9.64l-7.5 11.25a1 1 0 01-1.58.07l-3.75-5a1 1 0 011.58-1.23l2.93 3.9 6.74-10.12a1 1 0 011.58 1.23v-.1z"/></svg>
+          שלמו {selected?.price} דרך Stripe
+        </a>
+
+        <div style={{ fontSize:10, color:C.dim, textAlign:"center", marginBottom:16 }}>
+          לאחר התשלום – חזרו לאפליקציה ולחצו "כבר שילמתי"
+        </div>
+
+        {/* After payment button */}
+        <button className="btn-secondary" onClick={() => { setPaid(true); go(SCREENS.RESULTS); }}>
+          ✅ כבר שילמתי – פתחו את הניתוח
+        </button>
+
+        <div style={{ fontSize:10, color:C.dim, marginTop:10, textAlign:"center" }}>
+          ⚠️ לבידור בלבד · אינו ייעוץ גנטי מקצועי
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ======================= HOME =======================
+function HomeScreen({ go, paid }) {
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", padding:"0 20px 100px", paddingTop:50, position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative", zIndex:1, textAlign:"center" }}>
+        <div className="fadeUp float" style={{ fontSize:56, marginBottom:6 }}>🧬</div>
+        <div className="fadeUp1" style={{ fontSize:32, fontWeight:900, marginBottom:4 }}><span className="shimmer-text">FamilyMirror</span></div>
+        <div className="fadeUp1" style={{ fontSize:13, color:C.muted, marginBottom:24 }}>גנטיקה בשביל כולם 🇮🇱</div>
+        <DNAIcon/>
+
+        {paid && (
+          <div className="card card-teal fadeUp" style={{ marginTop:16, textAlign:"right" }}>
+            <div style={{ fontSize:13, color:C.teal, fontWeight:700 }}>✅ תשלום התקבל – הניתוח המלא פתוח!</div>
+          </div>
+        )}
+
+        <div className="card fadeUp2" style={{ textAlign:"right", marginTop:16 }}>
+          <div style={{ fontSize:20, fontWeight:800, color:C.white, marginBottom:8, lineHeight:1.3 }}>✨ למי הילד שלכם דומה?</div>
+          <div style={{ fontSize:13, color:C.muted, lineHeight:1.8 }}>AI אמיתי מנתח תמונות המשפחה ומגלה כל תכונה</div>
+        </div>
+
+        {[
+          {icon:"🤖",text:"AI מנתח תמונות אמיתיות"},
+          {icon:"📊",text:"אחוזי דמיון לכל תו פנים"},
+          {icon:"🌳",text:"אילן יוחסין ויזואלי"},
+          {icon:"💳",text:"סליקה מאובטחת Stripe"},
+        ].map((f,i) => (
+          <div key={i} style={{ display:"flex", alignItems:"center", gap:12, background:"rgba(255,255,255,0.035)", borderRadius:14, padding:"11px 14px", marginBottom:8, textAlign:"right" }}>
+            <span style={{ fontSize:20 }}>{f.icon}</span>
+            <span style={{ fontSize:14, color:C.white }}>{f.text}</span>
+            <span style={{ marginRight:"auto", color:C.teal, fontSize:12 }}>✓</span>
+          </div>
+        ))}
+
+        <div style={{ marginTop:22, display:"flex", flexDirection:"column", gap:10 }}>
+          <button className="btn-primary glow" onClick={() => go(SCREENS.UPLOAD)}>🚀 התחילו – חינם</button>
+          <button className="btn-secondary" onClick={() => go(SCREENS.PAYMENT)}>💳 תשלום ומנויים</button>
+        </div>
+        <div style={{ fontSize:10, color:C.dim, marginTop:10 }}>* לבידור בלבד · תמונות לא נשמרות</div>
+      </div>
+    </div>
+  );
+}
+
+// ======================= UPLOAD =======================
+function UploadScreen({ go, images, setImages }) {
+  const set=(key)=>(data)=>setImages(p=>({...p,[key]:data}));
+  const count=Object.values(images).filter(Boolean).length;
+  const hasMin=images.baby&&(images.mom||images.dad);
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", padding:"30px 20px 100px", position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative", zIndex:1 }}>
+        <div className="fadeUp" style={{ fontSize:22, fontWeight:900, color:C.white, marginBottom:4 }}>העלו תמונות 📸</div>
+        <div className="fadeUp1" style={{ fontSize:13, color:C.muted, marginBottom:22 }}>ככל שתעלו יותר – הניתוח עמוק יותר</div>
+        <div className="fadeUp1"><div style={{ fontSize:11,color:C.purpleLight,marginBottom:8,fontWeight:700 }}>👶 הילד — חובה</div><UploadBox label="תמונת הילד/ה" emoji="👶" imageData={images.baby} onImage={set("baby")} required/></div>
+        <div className="fadeUp2" style={{ marginTop:16 }}><div style={{ fontSize:11,color:C.purpleLight,marginBottom:8,fontWeight:700 }}>👨‍👩 הורים</div><div style={{ display:"flex",gap:10 }}><UploadBox label="אמא" emoji="👩" imageData={images.mom} onImage={set("mom")}/><UploadBox label="אבא" emoji="👨" imageData={images.dad} onImage={set("dad")}/></div></div>
+        <div className="fadeUp3" style={{ marginTop:16 }}><div style={{ fontSize:11,color:C.purpleLight,marginBottom:8,fontWeight:700 }}>👴👵 סבא וסבתא</div><div style={{ display:"flex",gap:10 }}><UploadBox label="סבא" emoji="👴" imageData={images.gpa} onImage={set("gpa")}/><UploadBox label="סבתא" emoji="👵" imageData={images.gma} onImage={set("gma")}/></div></div>
+        <div className="card fadeUp3" style={{ marginTop:18 }}>
+          <div style={{ display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:8 }}><span style={{ color:C.muted }}>תמונות שהועלו</span><span style={{ color:count>=2?C.teal:C.purpleLight,fontWeight:800 }}>{count}/5</span></div>
+          <div style={{ background:"rgba(255,255,255,0.08)",borderRadius:99,height:6 }}><div style={{ width:(count/5*100)+"%",height:"100%",background:`linear-gradient(90deg,${C.purple},${C.teal})`,borderRadius:99,transition:"width 0.5s" }}/></div>
+          <div style={{ fontSize:11,color:C.muted,marginTop:8 }}>{!images.baby?"⚠️ חובה תמונת ילד":!hasMin?"⚠️ הוסיפו הורה אחד":"✅ מוכן לניתוח!"}</div>
+        </div>
+        <div className="fadeUp4">
+          <button className="btn-primary" disabled={!hasMin} onClick={() => go(SCREENS.ANALYZING)}>🧬 נתחו עם AI</button>
+          <div style={{ fontSize:10,color:C.dim,textAlign:"center",marginTop:8 }}>🔒 תמונות לא נשמרות</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ======================= ANALYZING =======================
+function AnalyzingScreen({ go, images, setResult }) {
+  const [step, setStep] = useState(0);
+  const [error, setError] = useState(null);
+  const started = useRef(false);
+  const steps = ["שולחים ל-AI...","מזהים תווי פנים...","משווים מאפיינים...","מחשבים אחוזים...","✨ מוכן!"];
+  const run = useCallback(async () => {
+    if(started.current) return; started.current=true;
+    try {
+      let i=0; const iv=setInterval(()=>{if(++i<steps.length-1)setStep(i);else clearInterval(iv);},950);
+      const result=await analyzeWithAI(images);
+      clearInterval(iv); setStep(steps.length-1); setResult(result);
+      setTimeout(()=>go(SCREENS.RESULTS),750);
+    } catch(e) { setError("שגיאה. נסו שוב."); }
+  },[]);
+  useEffect(()=>{run();},[]);
+  return (
+    <div style={{ minHeight:"100vh",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",padding:"0 20px",position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative",zIndex:1 }}>
+        <div style={{ position:"relative",width:120,height:120,margin:"0 auto 20px" }}>
+          {[0,1,2].map(i=><div key={i} style={{ position:"absolute",inset:0,borderRadius:"50%",border:`2px solid ${C.purple}`,animation:`ripple 2.4s ${i*0.8}s ease-out infinite` }}/>)}
+          <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:52 }}>🧬</div>
+        </div>
+        <div style={{ fontSize:20,fontWeight:800,color:C.white,marginBottom:20 }}>AI מנתח את התמונות...</div>
+        <div style={{ maxWidth:280 }}>
+          {steps.map((st,i)=>(
+            <div key={i} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 16px",marginBottom:7,background:i<=step?`${C.purple}18`:"rgba(255,255,255,0.03)",border:i===step?`1px solid ${C.purple}`:"1px solid transparent",borderRadius:12,fontSize:13,color:i<=step?C.white:C.dim,transition:"all 0.35s" }}>
+              <span>{i<step?"✅":i===step?"⚡":"⬜"}</span>{st}
+            </div>
+          ))}
+        </div>
+        {error&&<div style={{ color:C.pink,marginTop:16,fontSize:13 }}>{error}<br/><button className="btn-secondary" style={{ marginTop:10,width:"auto",padding:"8px 20px" }} onClick={()=>go(SCREENS.UPLOAD)}>חזרה</button></div>}
+      </div>
+    </div>
+  );
+}
+
+// ======================= RESULTS =======================
+function ResultsScreen({ go, result, images, paid }) {
+  if(!result) return <div style={{ minHeight:"100vh",display:"flex",justifyContent:"center",alignItems:"center" }}><div style={{ textAlign:"center" }}><div style={{ fontSize:40,marginBottom:12 }}>⚠️</div><button className="btn-secondary" onClick={()=>go(SCREENS.UPLOAD)}>חזרה</button></div></div>;
+  return (
+    <div style={{ minHeight:"100vh",display:"flex",flexDirection:"column",padding:"28px 20px 100px",position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative",zIndex:1 }}>
+        <div className="fadeUp" style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18 }}>
+          <div><div style={{ fontSize:21,fontWeight:900,color:C.white }}>תוצאות הניתוח 🧬</div><div style={{ fontSize:11,color:C.muted }}>ניתוח AI אמיתי</div></div>
+          <div style={{ background:`${C.purple}33`,border:`1px solid ${C.purple}`,borderRadius:99,padding:"4px 12px",fontSize:11,color:"#C4B5FD" }}>AI ✦</div>
+        </div>
+        <div className="fadeUp1" style={{ background:`linear-gradient(135deg,${C.purple}1A,${C.pink}0F)`,border:`1px solid ${C.purple}44`,borderRadius:24,padding:"22px 20px",marginBottom:16,textAlign:"center" }}>
+          <div style={{ fontSize:14,color:C.muted,marginBottom:14 }}>{result.summary}</div>
+          <div style={{ display:"flex",justifyContent:"center",gap:32,marginBottom:14 }}>
+            <div><div style={{ fontSize:46,fontWeight:900,color:C.purple,lineHeight:1 }}><CountUp target={result.dad_pct}/></div><div style={{ fontSize:12,color:C.muted,marginTop:4 }}>👨 אבא</div></div>
+            <div style={{ width:1,background:"rgba(255,255,255,0.1)" }}/>
+            <div><div style={{ fontSize:46,fontWeight:900,color:C.pink,lineHeight:1 }}><CountUp target={result.mom_pct} duration={1400}/></div><div style={{ fontSize:12,color:C.muted,marginTop:4 }}>👩 אמא</div></div>
+          </div>
+          <div style={{ display:"flex",borderRadius:99,overflow:"hidden",height:10,margin:"0 10px 10px" }}>
+            <div style={{ width:result.dad_pct+"%",background:`linear-gradient(90deg,${C.purple},${C.purple}AA)`,transition:"width 1.2s" }}/>
+            <div style={{ flex:1,background:`linear-gradient(90deg,${C.pink}AA,${C.pink})` }}/>
+          </div>
+          <div style={{ fontSize:13,color:C.gold,fontWeight:700 }}>🏆 דומה יותר ל{result.dominant_parent}!</div>
+        </div>
+        {(()=>{const lbls={baby:"👶",mom:"👩",dad:"👨",gpa:"👴",gma:"👵"};const up=Object.entries(images).filter(([,v])=>v);return up.length>0&&(<div className="fadeUp2" style={{ display:"flex",gap:8,marginBottom:14,overflowX:"auto" }}>{up.map(([k,src])=><div key={k} style={{ textAlign:"center",flexShrink:0 }}><img src={src} alt={k} style={{ width:50,height:50,borderRadius:14,objectFit:"cover",border:`2px solid ${C.purple}44` }}/><div style={{ fontSize:9,color:C.muted,marginTop:2 }}>{lbls[k]}</div></div>)}</div>);})()}
+        <div className="card fadeUp2">
+          <div style={{ fontSize:14,fontWeight:800,color:C.white,marginBottom:14 }}>ניתוח לפי תכונה</div>
+          {(result.features||[]).slice(0,paid?5:3).map((f,i)=>(
+            <div key={i} style={{ marginBottom:16 }}>
+              <div style={{ display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:6 }}><span style={{ color:C.white,fontWeight:600 }}>{f.name}</span><span style={{ color:f.color||C.purple,fontWeight:700 }}>מ{f.from}</span></div>
+              <AnimatedBar pct={f.pct} color={f.color||C.purple} delay={i*120}/>
+              <div style={{ textAlign:"left",fontSize:10,color:C.muted,marginTop:3 }}>{f.pct}%</div>
+            </div>
+          ))}
+          {!paid&&(
+            <div style={{ background:"rgba(0,0,0,0.7)",borderRadius:14,padding:16,textAlign:"center",border:`1px dashed ${C.purple}`,backdropFilter:"blur(6px)" }}>
+              <div style={{ fontSize:20,marginBottom:6 }}>🔒</div>
+              <div style={{ fontSize:13,fontWeight:700,color:C.white,marginBottom:10 }}>עוד 2 תכונות + שאלון + אילן</div>
+              <a href={PAYMENT_LINKS.one_time} target="_blank" rel="noreferrer" className="btn-stripe" style={{ display:"inline-flex",width:"auto",padding:"10px 20px",fontSize:13 }}>
+                💳 שלמו 7.90 ₪ דרך Stripe
+              </a>
+              <div style={{ fontSize:11,color:C.dim,marginTop:8 }}>לאחר תשלום לחצו "כבר שילמתי" למטה</div>
+            </div>
+          )}
+        </div>
+        {result.fun_fact&&<div className="card card-gold fadeUp3"><div style={{ fontSize:12,color:C.gold,fontWeight:700,marginBottom:5 }}>💡 עובדה מעניינת</div><div style={{ fontSize:13,color:C.white,lineHeight:1.6 }}>{result.fun_fact}</div></div>}
+        {result.grandparent_note&&<div className="card card-teal fadeUp3"><div style={{ fontSize:12,color:C.teal,fontWeight:700,marginBottom:5 }}>👴👵 ירושה מהסבים</div><div style={{ fontSize:13,color:C.white,lineHeight:1.6 }}>{result.grandparent_note}</div></div>}
+        <div className="fadeUp4" style={{ display:"flex",flexDirection:"column",gap:9 }}>
+          <button className="btn-primary" onClick={()=>go(SCREENS.SHARE)}>📤 שתפו</button>
+          <button className="btn-secondary" onClick={()=>go(SCREENS.TREE)}>🌳 אילן יוחסין</button>
+          {!paid&&<button className="btn-secondary" onClick={()=>go(SCREENS.PAYMENT)}>💳 ניתוח מלא – 7.90 ₪</button>}
+          {!paid&&<button className="btn-secondary" style={{ borderColor:C.teal,color:C.teal }} onClick={()=>{setPaid&&setPaid(true);go(SCREENS.RESULTS);}}>✅ כבר שילמתי</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TreeScreen({ go, images, result }) {
+  const members=[{key:"gpa",name:"סבא",emoji:"👴",x:5,y:2,color:C.gold},{key:"gma",name:"סבתא",emoji:"👵",x:30,y:2,color:C.pink},{key:"dad",name:"אבא",emoji:"👨",x:17,y:37,color:C.purple},{key:"mom",name:"אמא",emoji:"👩",x:67,y:37,color:C.pink},{key:"baby",name:"הילד/ה",emoji:"👶",x:42,y:70,color:C.gold,big:true}];
+  return (
+    <div style={{ minHeight:"100vh",display:"flex",flexDirection:"column",padding:"28px 20px 100px",position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative",zIndex:1 }}>
+        <div className="fadeUp" style={{ fontSize:20,fontWeight:900,color:C.white,marginBottom:16 }}>אילן יוחסין 🌳</div>
+        <div className="card fadeUp1" style={{ position:"relative",height:320,padding:14 }}>
+          <svg style={{ position:"absolute",inset:0,width:"100%",height:"100%" }}><defs><linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#8B5CF6"/><stop offset="100%" stopColor="#EC4899"/></linearGradient></defs>{[[17,10,27,37],[42,10,27,37],[27,45,52,70],[77,45,52,70]].map(([x1,y1,x2,y2],i)=><line key={i} x1={x1+"%"} y1={y1+"%"} x2={x2+"%"} y2={y2+"%"} stroke="url(#lg2)" strokeWidth="1.5" strokeDasharray="5,4" opacity="0.4"/>)}</svg>
+          {members.map(m=><div key={m.key} style={{ position:"absolute",left:m.x+"%",top:m.y+"%",transform:"translate(-50%,0)",textAlign:"center",zIndex:2 }}><div style={{ width:m.big?68:52,height:m.big?68:52,borderRadius:"50%",border:`2px solid ${m.color}`,background:`${m.color}18`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",margin:"0 auto" }}>{images[m.key]?<img src={images[m.key]} alt={m.name} style={{ width:"100%",height:"100%",objectFit:"cover" }}/>:<span style={{ fontSize:m.big?30:22 }}>{m.emoji}</span>}</div><div style={{ fontSize:m.big?11:9,color:m.color,fontWeight:700,marginTop:4,whiteSpace:"nowrap" }}>{m.name}</div></div>)}
+        </div>
+        {result?.features&&<div className="card fadeUp2">{result.features.map((f,i)=><div key={i} style={{ display:"flex",justifyContent:"space-between",padding:"8px 12px",marginBottom:6,background:"rgba(255,255,255,0.04)",borderRadius:10,fontSize:13 }}><span style={{ color:C.white }}>{f.name}</span><span style={{ color:f.color||C.purple,fontWeight:700 }}>מ{f.from}</span></div>)}</div>}
+        <button className="btn-secondary" onClick={()=>go(SCREENS.RESULTS)}>← חזרה</button>
+      </div>
+    </div>
+  );
+}
+
+function ShareScreen({ go, result, images }) {
+  const [copied,setCopied]=useState(false);
+  const text=result?`🧬 FamilyMirror\n\nהילד שלנו דומה ${result.dad_pct}% לאבא ו-${result.mom_pct}% לאמא!\n${result.summary}\n\n* לבידור בלבד`:"נסו FamilyMirror 🧬";
+  const copy=()=>{ navigator.clipboard?.writeText(text).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}); };
+  return (
+    <div style={{ minHeight:"100vh",display:"flex",flexDirection:"column",padding:"28px 20px 100px",position:"relative" }}>
+      <Stars/>
+      <div style={{ position:"relative",zIndex:1 }}>
+        <div className="fadeUp" style={{ fontSize:20,fontWeight:900,color:C.white,marginBottom:20 }}>שתפו 📤</div>
+        <div className="fadeUp1 glow" style={{ background:"linear-gradient(135deg,#1A0A3A,#0A1A2E)",border:`2px solid ${C.purple}`,borderRadius:26,padding:"24px 20px",marginBottom:20,textAlign:"center" }}>
+          <div style={{ fontSize:34,marginBottom:8 }}>🧬</div>
+          <div style={{ fontSize:20,fontWeight:900,marginBottom:8 }}><span className="shimmer-text">FamilyMirror</span></div>
+          {(()=>{const up=Object.entries(images).filter(([,v])=>v);return up.length>0&&(<div style={{ display:"flex",justifyContent:"center",gap:6,marginBottom:14 }}>{up.slice(0,4).map(([k,src])=><img key={k} src={src} alt={k} style={{ width:48,height:48,borderRadius:"50%",objectFit:"cover",border:`2px solid ${C.purple}` }}/>)}</div>);})()}
+          {result&&<><div style={{ fontSize:28,fontWeight:900,color:C.white,marginBottom:6 }}>{result.dad_pct}% אבא · {result.mom_pct}% אמא</div><div style={{ fontSize:13,color:C.muted }}>{result.summary}</div></>}
+          <div style={{ fontSize:9,color:C.dim,marginTop:14 }}>* לבידור בלבד</div>
+        </div>
+        <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+          <button className="btn-gold" onClick={copy}>{copied?"✅ הועתק!":"📋 העתיקו טקסט"}</button>
+          <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer" style={{ display:"block",background:"#25D366",color:"#fff",borderRadius:16,padding:"14px 24px",fontSize:15,fontWeight:800,textAlign:"center",textDecoration:"none" }}>💬 שלחו בוואטסאפ</a>
+          <button className="btn-secondary" onClick={()=>go(SCREENS.RESULTS)}>← חזרה</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ======================= NAV =======================
+function Nav({ screen, go }) {
+  const items=[{s:SCREENS.HOME,icon:"🏠",label:"בית"},{s:SCREENS.UPLOAD,icon:"📸",label:"ניתוח"},{s:SCREENS.RESULTS,icon:"🔍",label:"תוצאות"},{s:SCREENS.TREE,icon:"🌳",label:"אילן"},{s:SCREENS.PAYMENT,icon:"💳",label:"תשלום"}];
+  return (
+    <div style={{ position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"rgba(7,3,15,0.97)",borderTop:`1px solid ${C.purple}22`,display:"flex",justifyContent:"space-around",padding:"8px 0 16px",backdropFilter:"blur(20px)",zIndex:100 }}>
+      {items.map(item=>(
+        <div key={item.s} className="nav-item" onClick={()=>go(item.s)}>
+          <div style={{ fontSize:22 }}>{item.icon}</div>
+          <div style={{ fontSize:9,marginTop:3,color:screen===item.s?C.purple:C.dim,fontWeight:screen===item.s?800:400 }}>{item.label}</div>
+          {screen===item.s&&<div style={{ width:18,height:3,background:C.purple,borderRadius:99,margin:"3px auto 0" }}/>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ======================= APP =======================
+export default function App() {
+  const [screen, setScreen] = useState(SCREENS.HOME);
+  const [images, setImages] = useState({baby:null,mom:null,dad:null,gpa:null,gma:null});
+  const [result, setResult] = useState(null);
+  const [paid, setPaid] = useState(false);
+  const go=(sc)=>setScreen(sc);
+  const noNav=[SCREENS.ANALYZING];
+
+  const render=()=>{
+    switch(screen){
+      case SCREENS.HOME:      return <HomeScreen go={go} paid={paid}/>;
+      case SCREENS.UPLOAD:    return <UploadScreen go={go} images={images} setImages={setImages}/>;
+      case SCREENS.ANALYZING: return <AnalyzingScreen go={go} images={images} setResult={setResult}/>;
+      case SCREENS.RESULTS:   return <ResultsScreen go={go} result={result} images={images} paid={paid} setPaid={setPaid}/>;
+      case SCREENS.TREE:      return <TreeScreen go={go} images={images} result={result}/>;
+      case SCREENS.PAYMENT:   return <PaymentScreen go={go} setPaid={setPaid}/>;
+      case SCREENS.SHARE:     return <ShareScreen go={go} result={result} images={images}/>;
+      default:                return <HomeScreen go={go} paid={paid}/>;
+    }
+  };
+
+  return (
+    <div style={{ direction:"rtl",fontFamily:"'Plus Jakarta Sans','Segoe UI',Arial,sans-serif",minHeight:"100vh",background:`linear-gradient(160deg,${C.bg0} 0%,${C.bg1} 50%,${C.bg2} 100%)`,color:C.white,maxWidth:430,margin:"0 auto",position:"relative" }}>
+      <StyleInjector/>
+      {render()}
+      {!noNav.includes(screen)&&<Nav screen={screen} go={go}/>}
+    </div>
+  );
+}
