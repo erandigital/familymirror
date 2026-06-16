@@ -491,27 +491,17 @@ async function compressImage(dataUrl, maxSize=800) {
 }
 
 async function callAI(messages, maxTokens=1200){
-  // Compress images in messages
-  const compressed = await Promise.all(messages.map(async (m) => {
-    if (!Array.isArray(m.content)) return m;
-    const newContent = await Promise.all(m.content.map(async (c) => {
-      if (c.type === "image" && c.source?.data) {
-        const dataUrl = "data:" + c.source.media_type + ";base64," + c.source.data;
-        const comp = await compressImage(dataUrl);
-        const base64 = comp.split(",")[1];
-        return {...c, source: {...c.source, data: base64, media_type: "image/jpeg"}};
-      }
-      return c;
-    }));
-    return {...m, content: newContent};
-  }));
-
-  const res=await fetch("/api/analyze",{
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({messages:compressed,max_tokens:maxTokens})
+    headers:{
+      "Content-Type":"application/json",
+      "x-api-key":"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",
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:maxTokens,messages})
   });
-  if(!res.ok) throw new Error("שגיאת שרת "+res.status);
+  if(!res.ok){const e=await res.text();throw new Error("שגיאה: "+res.status+" "+e);}
   const data=await res.json();
   if(data.error) throw new Error(JSON.stringify(data.error));
   return (data.content||[]).map(b=>b.text||"").join("").replace(/```json|```/g,"").trim();
