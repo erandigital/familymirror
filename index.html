@@ -471,11 +471,45 @@ function updateUploadStatus(){
 }
 
 // AI CALL - via Netlify function
+// Compress image to max 800px and quality 0.7
+async function compressImage(dataUrl, maxSize=800) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.75));
+    };
+    img.src = dataUrl;
+  });
+}
+
 async function callAI(messages, maxTokens=1200){
-  const res=await fetch("/.netlify/functions/analyze",{
+  // Compress images in messages
+  const compressed = await Promise.all(messages.map(async (m) => {
+    if (!Array.isArray(m.content)) return m;
+    const newContent = await Promise.all(m.content.map(async (c) => {
+      if (c.type === "image" && c.source?.data) {
+        const dataUrl = "data:" + c.source.media_type + ";base64," + c.source.data;
+        const comp = await compressImage(dataUrl);
+        const base64 = comp.split(",")[1];
+        return {...c, source: {...c.source, data: base64, media_type: "image/jpeg"}};
+      }
+      return c;
+    }));
+    return {...m, content: newContent};
+  }));
+
+  const res=await fetch("/api/analyze",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({messages,max_tokens:maxTokens})
+    body:JSON.stringify({messages:compressed,max_tokens:maxTokens})
   });
   if(!res.ok) throw new Error("שגיאת שרת "+res.status);
   const data=await res.json();
@@ -500,7 +534,10 @@ async function startAnalysis(){
     const labels={baby:"הילד/ה",mom:"האמא",dad:"האבא",gpa:"הסבא",gma:"הסבתא"};
     const content=[];
     for(const [key,dataUrl] of Object.entries(images).filter(([,v])=>v)){
-      content.push({type:"image",source:{type:"base64",media_type:dataUrl.split(";")[0].split(":")[1],data:dataUrl.split(",")[1]}});
+      const compressed = await compressImage(dataUrl, 600);
+      const mtype = "image/jpeg";
+      const b64 = compressed.split(",")[1];
+      content.push({type:"image",source:{type:"base64",media_type:mtype,data:b64}});
       content.push({type:"text",text:`התמונה: ${labels[key]}`});
     }
     content.push({type:"text",text:`נתח דמיון פנים בפירוט מקסימלי. החזר ONLY JSON ללא backticks:
