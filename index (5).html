@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="theme-color" content="#07030F"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="FamilyMirror"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="icon" href="/icon-192.png"/>
+<link rel="apple-touch-icon" href="/icon-180.png"/>
+<link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png"/>
+<link rel="apple-touch-icon" sizes="167x167" href="/icon-167.png"/>
+<title>FamilyMirror 🧬</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- FM-REBUILD-v3 -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07030F;font-family:Arial,sans-serif;color:#F0EAFE;direction:rtl;-webkit-tap-highlight-color:transparent}
+#app{max-width:430px;margin:0 auto;min-height:100vh;padding:20px 20px 100px}
+.screen{display:none}.screen.active{display:block}
+button{font-family:Arial,sans-serif;cursor:pointer;width:100%;margin-bottom:10px;padding:14px;border-radius:14px;font-size:15px;font-weight:700;border:none;color:#fff}
+.btn-main{background:linear-gradient(135deg,#8B5CF6,#EC4899)}
+.btn-sec{background:transparent;border:1.5px solid #8B5CF6;color:#A78BFA}
+.btn-teal{background:transparent;border:1.5px solid #14B8A6;color:#14B8A6}
+.btn-gold{background:linear-gradient(135deg,#F59E0B,#D97706)}
+.btn-stripe{background:linear-gradient(135deg,#635BFF,#8B5CF6);display:block;text-align:center;text-decoration:none;padding:14px;border-radius:14px;font-size:15px;font-weight:700;color:#fff;margin-bottom:10px}
+.btn-wa{display:block;background:#25D366;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:10px}
+.card{background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:18px;padding:16px;margin-bottom:14px}
+.card-gold{background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.2)}
+.card-teal{background:rgba(20,184,166,0.08);border-color:rgba(20,184,166,0.2)}
+.card-pink{background:rgba(236,72,153,0.08);border-color:rgba(236,72,153,0.2)}
+.title{font-size:22px;font-weight:900;margin-bottom:6px}
+.sub{font-size:13px;color:#9CA3AF;margin-bottom:20px}
+.logo-text{font-size:28px;font-weight:900;text-align:center;background:linear-gradient(90deg,#A78BFA,#EC4899,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+.upload-area{border:2px dashed rgba(139,92,246,0.4);border-radius:16px;padding:18px;text-align:center;cursor:pointer;background:rgba(139,92,246,0.05)}
+.upload-area.done{border-color:#14B8A6;background:rgba(20,184,166,0.08)}
+.upload-row{display:flex;gap:10px;margin-bottom:10px}
+.upload-half{flex:1}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(7,3,15,0.97);border-top:1px solid rgba(139,92,246,0.2);display:flex;padding:8px 0 16px;z-index:100}
+.nav-btn{flex:1;text-align:center;cursor:pointer;background:none;border:none;color:#4B5563;font-size:9px;padding:4px 0;margin-bottom:0;width:auto}
+.nav-btn.active{color:#8B5CF6;font-weight:700}
+.nav-icon{font-size:20px;display:block;margin-bottom:2px}
+.progress-bar{background:rgba(255,255,255,0.08);border-radius:99px;height:8px;margin:8px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,#8B5CF6,#14B8A6);border-radius:99px;transition:width 0.4s}
+.bar-wrap{background:rgba(255,255,255,0.07);border-radius:99px;height:9px;overflow:hidden;margin:6px 0}
+.bar-fill{height:100%;border-radius:99px}
+.spinner{width:60px;height:60px;border:4px solid rgba(139,92,246,0.2);border-top:4px solid #8B5CF6;border-radius:50%;animation:spin 1s linear infinite;margin:20px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.step-row{display:flex;align-items:center;gap:10px;padding:9px 16px;margin-bottom:7px;border-radius:12px;font-size:13px;border:1px solid transparent;transition:all 0.3s}
+.step-row.active{border-color:#8B5CF6;background:rgba(139,92,246,0.15)}
+.step-row.done{background:rgba(139,92,246,0.08)}
+.plan-card{border:1.5px solid rgba(255,255,255,0.08);border-radius:18px;padding:14px;margin-bottom:12px;cursor:pointer}
+.plan-card.sel{border-color:#8B5CF6;background:rgba(139,92,246,0.1)}
+.tag{display:inline-block;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:99px;padding:3px 9px;font-size:10px;color:#A78BFA;margin:2px}
+.q-card{background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.18);border-radius:16px;padding:14px;margin-bottom:12px}
+.q-opt{padding:7px 13px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid rgba(139,92,246,0.3);background:rgba(255,255,255,0.05);color:#E2D9F3;font-family:Arial;margin:4px 2px;display:inline-block}
+.q-opt.sel{background:linear-gradient(135deg,#8B5CF6,#EC4899);border-color:transparent;color:#fff;font-weight:700}
+.terms-box{font-size:12px;color:#9CA3AF;line-height:1.8;max-height:450px;overflow-y:auto}
+.terms-box h3{color:#A78BFA;font-size:13px;margin:14px 0 4px}
+.disclaimer{font-size:10px;color:#4B5563;text-align:center;margin-top:12px;line-height:1.6}
+.feature-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.input{width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(139,92,246,0.3);border-radius:14px;padding:14px 16px;font-size:15px;color:#F0EAFE;font-family:Arial,sans-serif;margin-bottom:12px}
+.input::placeholder{color:#6B6280}
+.input:focus{outline:none;border-color:#8B5CF6}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- בית -->
+<div class="screen active" id="s-home">
+  <div style="padding-top:16px;text-align:center">
+    <svg width="64" height="64" viewBox="0 0 80 80" style="display:block;margin:0 auto 8px">
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#EC4899"/></linearGradient>
+        <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#14B8A6"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient>
+      </defs>
+      <circle cx="40" cy="40" r="38" fill="url(#g1)" opacity="0.15"/>
+      <circle cx="40" cy="40" r="38" stroke="url(#g1)" stroke-width="2" fill="none"/>
+      <circle cx="28" cy="18" r="5" fill="url(#g1)"/><circle cx="52" cy="18" r="5" fill="url(#g2)"/><line x1="33" y1="18" x2="47" y2="18" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="52" cy="31" r="5" fill="url(#g1)"/><circle cx="28" cy="31" r="5" fill="url(#g2)"/><line x1="33" y1="31" x2="47" y2="31" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="28" cy="44" r="5" fill="url(#g1)"/><circle cx="52" cy="44" r="5" fill="url(#g2)"/><line x1="33" y1="44" x2="47" y2="44" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="52" cy="57" r="5" fill="url(#g1)"/><circle cx="28" cy="57" r="5" fill="url(#g2)"/><line x1="33" y1="57" x2="47" y2="57" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div class="logo-text">FamilyMirror</div>
+    <div style="text-align:center;color:#9CA3AF;font-size:13px;margin-bottom:20px">גנטיקה בשביל כולם 🇮🇱</div>
+  </div>
+  <div class="card">
+    <div style="font-size:17px;font-weight:800;margin-bottom:8px">✨ למי הילד שלכם דומה?</div>
+    <div style="font-size:13px;color:#9CA3AF;line-height:1.7">AI אמיתי מנתח תמונות המשפחה ומגלה כל תכונה – מי העביר אותה ובכמה אחוז</div>
+  </div>
+  <div class="feature-row"><span style="font-size:20px">🗺️</span><span style="font-size:14px">מפת פנים ויזואלית מפורטת</span><span style="margin-right:auto;color:#14B8A6;font-size:12px">✓</span></div>
+  <div class="feature-row"><span style="font-size:20px">📊</span><span style="font-size:14px">דו"ח אחוזים לכל תכונה</span><span style="margin-right:auto;color:#14B8A6;font-size:12px">✓</span></div>
+  <div class="feature-row"><span style="font-size:20px">🧩</span><span style="font-size:14px">שאלון גנטי 20 שאלות + תחזיות</span><span style="margin-right:auto;color:#14B8A6;font-size:12px">✓</span></div>
+  <div class="feature-row"><span style="font-size:20px">🌳</span><span style="font-size:14px">אילן יוחסין ויזואלי</span><span style="margin-right:auto;color:#14B8A6;font-size:12px">✓</span></div>
+  <br>
+  <button class="btn-main" onclick="nav('s-upload')">🚀 התחילו – חינם</button>
+  <button class="btn-sec" id="install-btn" onclick="installApp()" style="display:none">📲 התקינו את האפליקציה</button>
+  <a href="https://wa.me/972547335693?text=%D7%A9%D7%9C%D7%95%D7%9D%2C%20%D7%90%D7%A0%D7%99%20%D7%9E%D7%AA%D7%A2%D7%A0%D7%99%D7%99%D7%9F%20%D7%91-FamilyMirror" target="_blank" style="display:block;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:800;text-align:center;text-decoration:none;margin-bottom:10px">💬 דברו איתנו בוואטסאפ</a>
+  <button class="btn-sec" onclick="nav('s-questionnaire');setNav('nav-q')">🧩 שאלון גנטי</button>
+  <button class="btn-sec" onclick="nav('s-plans');setNav('nav-pay')">💎 חבילות ומחירים</button>
+  <button class="btn-sec" onclick="openProfile()">👤 הפרופיל שלי</button>
+  <div class="disclaimer">* לבידור בלבד · תמונות לא נשמרות · אינו ייעוץ גנטי<br>© 2026 FamilyMirror · <span style="color:#8B5CF6;cursor:pointer" onclick="nav('s-terms')">תקנון</span></div>
+</div>
+
+<!-- העלאה -->
+<div class="screen" id="s-upload">
+  <div class="title">העלו תמונות 📸</div>
+  <div class="sub">ככל שתעלו יותר – הניתוח עמוק יותר</div>
+  <div style="font-size:11px;color:#A78BFA;margin-bottom:8px;font-weight:700">👶 הילד — חובה</div>
+  <div class="upload-area" id="u-baby" onclick="pick('baby')" style="margin-bottom:12px"><div id="uc-baby"><div style="font-size:28px">👶</div><div style="font-size:12px;color:#9CA3AF;margin-top:4px">תמונת הילד/ה</div><div style="font-size:10px;color:#EC4899">* חובה</div></div></div>
+  <div style="font-size:11px;color:#A78BFA;margin-bottom:8px;font-weight:700">👨‍👩 הורים</div>
+  <div class="upload-row">
+    <div class="upload-half upload-area" id="u-mom" onclick="pick('mom')"><div id="uc-mom"><div style="font-size:26px">👩</div><div style="font-size:11px;color:#9CA3AF">אמא</div></div></div>
+    <div class="upload-half upload-area" id="u-dad" onclick="pick('dad')"><div id="uc-dad"><div style="font-size:26px">👨</div><div style="font-size:11px;color:#9CA3AF">אבא</div></div></div>
+  </div>
+  <div style="font-size:11px;color:#A78BFA;margin-bottom:8px;font-weight:700">👴👵 סבים (מוסיף עומק)</div>
+  <div class="upload-row">
+    <div class="upload-half upload-area" id="u-gpa" onclick="pick('gpa')"><div id="uc-gpa"><div style="font-size:26px">👴</div><div style="font-size:11px;color:#9CA3AF">סבא</div></div></div>
+    <div class="upload-half upload-area" id="u-gma" onclick="pick('gma')"><div id="uc-gma"><div style="font-size:26px">👵</div><div style="font-size:11px;color:#9CA3AF">סבתא</div></div></div>
+  </div>
+  <div id="gold-siblings" style="display:none">
+    <div style="font-size:11px;color:#F59E0B;margin-bottom:8px;font-weight:700">🥇 ילדים נוספים — בלעדי לגולד</div>
+    <div class="upload-row">
+      <div class="upload-half upload-area" id="u-baby2" onclick="pick('baby2')"><div id="uc-baby2"><div style="font-size:26px">👶</div><div style="font-size:11px;color:#9CA3AF">ילד/ה 2</div></div></div>
+      <div class="upload-half upload-area" id="u-baby3" onclick="pick('baby3')"><div id="uc-baby3"><div style="font-size:26px">👶</div><div style="font-size:11px;color:#9CA3AF">ילד/ה 3</div></div></div>
+    </div>
+  </div>
+  <input type="file" id="file-in" accept="image/*" style="display:none" onchange="gotFile(event)">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:#9CA3AF">תמונות</span><span id="ucount" style="color:#A78BFA;font-weight:700">0/5</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="uprog" style="width:0%"></div></div>
+    <div id="ustatus" style="font-size:11px;color:#9CA3AF;margin-top:6px">⚠️ חובה תמונת ילד</div>
+  </div>
+  <button class="btn-main" id="analyze-btn" onclick="startAnalysis()" disabled style="opacity:0.4">🧬 נתחו עם AI</button>
+  <div class="disclaimer">🔒 תמונות מעובדות בזמן אמת ולא נשמרות</div>
+</div>
+
+<!-- פרטים -->
+<div class="screen" id="s-lead">
+  <div style="padding-top:40px;text-align:center">
+    <div style="font-size:48px;margin-bottom:14px">📝</div>
+  </div>
+  <div class="title" style="text-align:center">לפני שממשיכים</div>
+  <div class="sub" style="text-align:center">השאירו פרטים ונמשיך מיד הלאה</div>
+  <div class="card">
+    <input class="input" id="lead-name" type="text" placeholder="שם מלא"/>
+    <input class="input" id="lead-phone" type="tel" placeholder="טלפון או מייל"/>
+  </div>
+  <button class="btn-main" onclick="submitLead()">המשך ←</button>
+  <button class="btn-sec" onclick="cancelLead()">ביטול</button>
+  <div class="disclaimer">הפרטים משמשים אותנו ליצירת קשר בלבד ולא יועברו לצד שלישי</div>
+</div>
+
+<!-- פרופיל -->
+<div class="screen" id="s-profile">
+  <div class="title">הפרופיל שלי 👤</div>
+  <div id="profile-content"></div>
+  <button class="btn-sec" onclick="nav('s-home');setNav('nav-home')">← חזרה</button>
+</div>
+
+<!-- צ'אט AI -->
+<div class="screen" id="s-chat">
+  <div class="title">💬 שאלו את ה-AI</div>
+  <div class="sub" id="chat-quota-label"></div>
+  <div id="chat-messages" style="margin-bottom:14px"></div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input class="input" id="chat-input" type="text" placeholder="שאלו על הדוח שלכם..." style="margin-bottom:0;flex:1" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="btn-main" style="width:auto;padding:14px 22px;margin:0" onclick="sendChat()">שלח</button>
+  </div>
+  <button class="btn-sec" onclick="nav('s-results');setNav('nav-results')">← חזרה</button>
+</div>
+
+<!-- ניתוח -->
+<div class="screen" id="s-analyzing">
+  <div style="text-align:center;padding-top:60px">
+    <div style="font-size:52px;margin-bottom:16px">🧬</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">AI מנתח את התמונות...</div>
+    <div style="font-size:13px;color:#9CA3AF;margin-bottom:24px">בונה דו"ח ויזואלי מפורט</div>
+    <div class="spinner"></div>
+    <div id="steps" style="max-width:280px;margin:20px auto 0"></div>
+    <div style="max-width:280px;margin:18px auto 0;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px 14px">
+      <div style="font-size:12px;color:#FBBF24;line-height:1.6">⏳ זה יכול לקחת עד דקה<br>אל תצאו מהדף ואל תרעננו</div>
+    </div>
+    <div id="err-box" style="display:none;margin-top:20px">
+      <div id="err-msg" style="color:#EC4899;margin-bottom:12px">שגיאה בניתוח. בדקו חיבור ונסו שוב.</div>
+      <button class="btn-sec" style="width:auto;padding:8px 20px" onclick="nav('s-upload')">← חזרה</button>
+    </div>
+  </div>
+</div>
+
+<!-- תוצאות -->
+<div class="screen" id="s-results">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+    <div><div class="title" style="font-size:20px">דו"ח ניתוח 🧬</div><div style="font-size:11px;color:#9CA3AF">ניתוח AI אמיתי</div></div>
+    <div style="background:rgba(139,92,246,0.2);border:1px solid #8B5CF6;border-radius:99px;padding:4px 12px;font-size:11px;color:#C4B5FD">AI ✦</div>
+  </div>
+  <div id="results-content"></div>
+</div>
+
+<!-- אילן -->
+<div class="screen" id="s-tree">
+  <div class="title">אילן יוחסין 🌳</div>
+  <div class="sub">התמונות שלכם בעץ המשפחה</div>
+  <div class="card" style="position:relative;height:300px">
+    <svg style="position:absolute;inset:0;width:100%;height:100%">
+      <defs><linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <line x1="17%" y1="10%" x2="27%" y2="37%" stroke="url(#tg)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"/>
+      <line x1="42%" y1="10%" x2="27%" y2="37%" stroke="url(#tg)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"/>
+      <line x1="27%" y1="45%" x2="52%" y2="70%" stroke="url(#tg)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"/>
+      <line x1="77%" y1="45%" x2="52%" y2="70%" stroke="url(#tg)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"/>
+    </svg>
+    <div id="tree-nodes"></div>
+  </div>
+  <div id="tree-feats" style="margin-top:14px"></div>
+  <button class="btn-sec" onclick="nav('s-results');setNav('nav-results')">← חזרה</button>
+</div>
+
+<!-- שאלון -->
+<div class="screen" id="s-questionnaire">
+  <div class="title">שאלון גנטי 🧩</div>
+  <div class="sub">20 שאלות שיגלו תובנות מרתקות</div>
+  <div id="q-prog-text" style="font-size:12px;color:#9CA3AF;text-align:center;margin-bottom:8px">שאלה 1 מתוך 20</div>
+  <div class="progress-bar" style="margin-bottom:20px"><div class="progress-fill" id="q-prog" style="width:5%"></div></div>
+  <div id="q-box"></div>
+  <div style="display:flex;gap:10px">
+    <button class="btn-sec" id="q-prev" onclick="qPrev()" style="display:none;flex:1">← הקודמת</button>
+    <button class="btn-main" id="q-next" onclick="qNext()" style="flex:1">הבאה ←</button>
+  </div>
+</div>
+
+<!-- תוצאות שאלון -->
+<div class="screen" id="s-qresults">
+  <div class="title">תובנות גנטיות 🔮</div>
+  <div class="sub">מבוסס על השאלון שמילאתם</div>
+  <div id="qr-content"></div>
+  <button class="btn-sec" onclick="nav('s-questionnaire');setNav('nav-q')">← ענו שוב</button>
+  <button class="btn-main" onclick="nav('s-upload');setNav('nav-upload')">📸 נתחו תמונות</button>
+</div>
+
+<!-- חבילות -->
+<div class="screen" id="s-plans">
+  <div class="title">💎 החבילות שלנו</div>
+  <div class="sub">בחרו את החבילה שמתאימה לכם</div>
+
+  <div class="card" style="border-color:rgba(139,92,246,0.4);position:relative">
+    <div style="position:absolute;top:-10px;right:16px;background:linear-gradient(135deg,#8B5CF6,#EC4899);font-size:10px;font-weight:700;padding:4px 12px;border-radius:99px">🔥 הכי נמכר</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:17px;font-weight:800">🔓 ניתוח מלא</div>
+      <div style="font-size:22px;font-weight:900;color:#8B5CF6">7.90 ₪</div>
+    </div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">תשלום חד-פעמי · לנצח</div>
+    <div style="font-size:12px;color:#9CA3AF;margin-bottom:10px;background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.2);border-radius:10px;padding:8px">🤔 <strong style="color:#EC4899">פותר:</strong> "נולד תינוק ורוצים לדעת בדיוק למי הוא דומה"</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ מפת פנים ויזואלית מלאה</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ כל 5 תכונות עם אחוזים</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ ניתוח דמיון לסבים</div>
+    <div style="font-size:13px;margin-bottom:10px">✓ תחזית לילד הבא</div>
+    <button class="btn-stripe" onclick="requireLead(()=>openStripe('https://buy.stripe.com/4gM5kF6I8aAh4fg0Rc2sM01'))">💳 קנו עכשיו – 7.90 ₪</button>
+    <button class="btn-teal" onclick="requireLead(refreshStatus)">🔄 בדקו סטטוס תשלום</button>
+  </div>
+
+  <div class="card" style="border-color:rgba(20,184,166,0.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:17px;font-weight:800">🌱 בסיס</div>
+      <div style="font-size:20px;font-weight:900;color:#14B8A6">9.90 ₪<span style="font-size:12px">/חודש</span></div>
+    </div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">ביטול בכל עת</div>
+    <div style="font-size:12px;color:#9CA3AF;margin-bottom:10px;background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.2);border-radius:10px;padding:8px">🤔 <strong style="color:#EC4899">פותר:</strong> "יש לי כמה ילדים ורוצה לנתח כל אחד"</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ ניתוח מלא לילד חדש כל חודש</div>
+    <div style="font-size:13px;margin-bottom:10px">✓ שמירת היסטוריה של ניתוחים</div>
+    <button class="btn-stripe" style="background:linear-gradient(135deg,#0D9488,#14B8A6)" onclick="requireLead(()=>openStripe('https://buy.stripe.com/3cIcN7feE6k1aDEfM62sM02'))">🌱 הצטרפו – 9.90 ₪/חודש</button>
+  </div>
+
+  <div class="card" style="border-color:rgba(139,92,246,0.5);position:relative">
+    <div style="position:absolute;top:-10px;right:16px;background:linear-gradient(135deg,#8B5CF6,#EC4899);font-size:10px;font-weight:700;padding:4px 12px;border-radius:99px">⭐ הפופולרי</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:17px;font-weight:800">👑 פרימיום</div>
+      <div style="font-size:20px;font-weight:900;color:#8B5CF6">19.90 ₪<span style="font-size:12px">/חודש</span></div>
+    </div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">ביטול בכל עת</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ ניתוחים בלתי מוגבלים</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ תחזיות לילדים עתידיים</div>
+    <div style="font-size:13px;margin-bottom:10px">✓ שאלון גנטי מורחב</div>
+    <button class="btn-stripe" onclick="requireLead(()=>openStripe('https://buy.stripe.com/14A4gBfeE37PcLMfM62sM03'))">👑 הצטרפו – 19.90 ₪/חודש</button>
+  </div>
+
+  <div class="card" style="border-color:rgba(245,158,11,0.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:17px;font-weight:800">🥇 גולד</div>
+      <div style="font-size:20px;font-weight:900;color:#F59E0B">29.90 ₪<span style="font-size:12px">/חודש</span></div>
+    </div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">הכי מקיף · ביטול בכל עת</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ הכל מפרימיום +</div>
+    <div style="font-size:13px;margin-bottom:4px">✓ AI גנטיקאי אישי</div>
+    <div style="font-size:13px;margin-bottom:10px">✓ תמיכה בוואטסאפ</div>
+    <button class="btn-stripe" style="background:linear-gradient(135deg,#D97706,#F59E0B)" onclick="requireLead(()=>openStripe('https://buy.stripe.com/eVq28t2rS0ZHbHI43o2sM04'))">🥇 הצטרפו – 29.90 ₪/חודש</button>
+  </div>
+
+  <div class="disclaimer">כל המנויים כוללים ביטול בכל עת · ⚠️ לבידור בלבד</div>
+</div>
+
+<!-- שיתוף -->
+<div class="screen" id="s-share">
+  <div class="title">שתפו 📤</div>
+  <div id="share-card" style="background:linear-gradient(135deg,#1A0A3A,#0A1520);border:2px solid #8B5CF6;border-radius:22px;padding:20px;text-align:center;margin-bottom:18px">
+    <div style="font-size:30px;margin-bottom:6px">🧬</div>
+    <div style="font-size:18px;font-weight:900;margin-bottom:8px;background:linear-gradient(90deg,#A78BFA,#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">FamilyMirror</div>
+    <div id="share-photos" style="display:flex;justify-content:center;gap:6px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <div id="share-text"></div>
+    <div style="font-size:9px;color:#4B5563;margin-top:10px">* לבידור בלבד · אינו ייעוץ גנטי</div>
+  </div>
+  <button class="btn-wa" id="wa-share-btn" onclick="shareReportImage()">💬 שלחו בוואטסאפ</button>
+  <button class="btn-gold" id="dl-btn" onclick="downloadReport()">📥 הורידו לטלפון</button>
+  <button class="btn-sec" id="copy-btn" onclick="copyShare()">📋 העתיקו טקסט בלבד</button>
+  <button class="btn-sec" onclick="nav('s-results');setNav('nav-results')">← חזרה</button>
+</div>
+
+
+<!-- תקנון -->
+<div class="screen" id="s-terms">
+  <div class="title">תקנון ותנאי שימוש ⚖️</div>
+  <div style="font-size:11px;color:#9CA3AF;margin-bottom:14px">עודכן: יוני 2026</div>
+  <div class="card terms-box">
+    <h3>1. מהות השירות</h3>
+    <p>FamilyMirror היא שירות <strong>בידור ופנאי בלבד</strong> המשתמש ב-AI לניתוח ויזואלי של דמיון פנים. <strong>אינה</strong> מספקת ייעוץ גנטי או רפואי.</p>
+    <h3>2. אין תחליף לייעוץ מקצועי</h3>
+    <p>התוצאות הן <strong>ניחוש ויזואלי</strong> בלבד. לייעוץ גנטי אמיתי יש לפנות לגנטיקאי קליני מוסמך.</p>
+    <h3>3. פרטיות ותמונות</h3>
+    <p>תמונות מעובדות בזמן אמת ואינן נשמרות. האחריות על שיתוף תמונות קטינים על המשתמש.</p>
+    <h3>4. קטינים</h3>
+    <p>שימוש מתחת לגיל 13 אסור ללא פיקוח הורי. העלאת תמונות קטינים מותרת אך ורק על ידי הורה.</p>
+    <h3>5. תשלומים ואי-החזרים</h3>
+    <p>עסקאות מעובדות על ידי Stripe בלבד.</p>
+    <p><strong>🚫 אין החזרים כספיים</strong> מכל סוג:</p>
+    <p>• <strong>תשלום חד-פעמי</strong> – לאחר ביצוע הניתוח השירות סופק. לא ניתן "להחזיר" שירות דיגיטלי.</p>
+    <p>• <strong>מנוי חודשי</strong> – לא יינתן החזר על החודש השוטף. ניתן לבטל לחודש הבא.</p>
+    <p>• <strong>אי-שביעות רצון</strong> – התוצאות הן ניחוש AI. אי-הסכמה עם התוצאות אינה עילה להחזר.</p>
+    <p>💡 <em>כל ניתוח מחייב עלות עיבוד AI בזמן אמת. ברגע שבוצע – לא ניתן לבטל.</em></p>
+    <h3>6. הגבלת אחריות</h3>
+    <p>FamilyMirror לא תהיה אחראית לכל נזק. השירות מסופק "כמות שהוא".</p>
+    <h3>7. יצירת קשר</h3>
+    <p>📧 <a href="mailto:erandigital80@gmail.com" style="color:#8B5CF6">erandigital80@gmail.com</a></p>
+    <p>💬 <a href="https://wa.me/972547335693" style="color:#25D366">054-7335693</a></p>
+    <p style="color:#EC4899;font-weight:700;margin-top:12px">⚠️ לבידור בלבד. כל הסתמכות על התוצאות – על אחריות המשתמש.</p>
+  </div>
+  <button class="btn-main" onclick="nav('s-home');setNav('nav-home')">הבנתי ← חזרה</button>
+</div>
+
+</div><!-- end app -->
+
+<!-- תבנית תעודה (גולד) - מוסתרת מהתצוגה, נלכדת ע"י html2canvas -->
+<div id="cert-template" style="position:fixed;top:-9999px;left:-9999px;width:800px;height:760px;background:linear-gradient(160deg,#1A0A3A,#0A0614 60%);border:6px solid #F59E0B;border-radius:24px;padding:50px;font-family:Arial,sans-serif;color:#F0EAFE;text-align:center;direction:rtl">
+  <div style="font-size:14px;letter-spacing:4px;color:#F59E0B;font-weight:700">FAMILYMIRROR · GOLD CERTIFICATE</div>
+  <div style="font-size:46px;margin:20px 0 6px;font-weight:900;background:linear-gradient(90deg,#A78BFA,#EC4899,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent">תעודת דמיון משפחתית</div>
+  <div style="font-size:15px;color:#9CA3AF;margin-bottom:30px">הונפקה ע"י ניתוח AI מתקדם · FamilyMirror</div>
+  <div style="font-size:80px;margin:6px 0">🧬</div>
+  <div id="cert-pcts" style="font-size:54px;font-weight:900;margin:26px 0"></div>
+  <div id="cert-summary" style="font-size:20px;color:#E2D9F3;margin:0 60px 30px;line-height:1.6"></div>
+  <div style="width:200px;height:2px;background:linear-gradient(90deg,transparent,#F59E0B,transparent);margin:30px auto"></div>
+  <div id="cert-date" style="font-size:14px;color:#6B6280;margin-top:16px"></div>
+  <div style="font-size:13px;color:#4B5563;margin-top:10px">* לבידור בלבד · אינו ייעוץ גנטי מקצועי</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" id="nav-home" onclick="nav('s-home');setNav('nav-home')"><span class="nav-icon">🏠</span>בית</button>
+  <button class="nav-btn" id="nav-upload" onclick="nav('s-upload');setNav('nav-upload')"><span class="nav-icon">📸</span>ניתוח</button>
+  <button class="nav-btn" id="nav-results" onclick="nav('s-results');setNav('nav-results')"><span class="nav-icon">🔍</span>תוצאות</button>
+  <button class="nav-btn" id="nav-q" onclick="nav('s-questionnaire');setNav('nav-q')"><span class="nav-icon">🧩</span>שאלון</button>
+  <button class="nav-btn" id="nav-pay" onclick="nav('s-plans');setNav('nav-pay')"><span class="nav-icon">💎</span>חבילות</button>
+</nav>
+
+<script>
+// ===== STATE =====
+const IMGS = {baby:null,mom:null,dad:null,gpa:null,gma:null,baby2:null,baby3:null};
+let curPick = null, result = null, paid = false, qAnswers = {}, curQ = 0, shareMsg = "";
+let leadInfo = null, pendingAction = null, fromScreen = 's-home', userProfile = null;
+
+// ===== LEAD CAPTURE / PROFILE LOGIN =====
+function requireLead(action){
+  if(leadInfo){ action(); return; }
+  pendingAction = action;
+  fromScreen = document.querySelector('.screen.active')?.id || 's-home';
+  nav('s-lead'); setNav('');
+}
+async function submitLead(){
+  const name=document.getElementById('lead-name').value.trim();
+  const phone=document.getElementById('lead-phone').value.trim();
+  if(!name||!phone){ alert('אנא מלאו שם ופרטי קשר'); return; }
+  leadInfo={name,phone};
+  try{
+    const res=await fetch('/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upsert',name,phone})});
+    const data=await res.json();
+    if(data.ok){ userProfile=data.record; paid = paid || !!userProfile.paid; }
+  }catch(e){ console.error(e); }
+  const action=pendingAction; pendingAction=null;
+  if(action) action(); else nav(fromScreen);
+}
+function cancelLead(){ pendingAction=null; nav(fromScreen); }
+function openStripe(url){
+  const ref = leadInfo ? encodeURIComponent(leadInfo.phone) : '';
+  window.open(url + (ref ? ('?client_reference_id=' + ref) : ''), '_blank');
+}
+
+// ===== PROFILE SCREEN =====
+function openProfile(){
+  requireLead(()=>{ nav('s-profile'); setNav(''); renderProfile(); });
+}
+function renderProfile(){
+  const p=userProfile||{name:leadInfo?.name,phone:leadInfo?.phone,paid:paid,plan:null,reports:[]};
+  const planLabel={one_time:'ניתוח מלא (חד פעמי)',basic:'בסיס',premium:'פרימיום',gold:'גולד'}[p.plan]||null;
+  const statusHtml = p.paid
+    ? `<div class="card card-teal"><div style="font-size:14px;font-weight:800;color:#14B8A6;margin-bottom:4px">✅ מנוי פעיל</div><div style="font-size:13px;color:#9CA3AF">${planLabel?'חבילה: '+planLabel:'ניתוח מלא פתוח'}</div></div>`
+    : `<div class="card"><div style="font-size:14px;font-weight:800;margin-bottom:4px">🔓 עדיין לא שילמתם</div><div style="font-size:13px;color:#9CA3AF;margin-bottom:10px">פתחו את הדוח המלא וכל הפיצ'רים</div><button class="btn-sec" onclick="nav('s-plans');setNav('nav-pay')">💎 לצפייה בחבילות</button></div>`;
+  const reports=(p.reports||[]);
+  const reportsHtml = reports.length
+    ? reports.map((r,i)=>{
+        const d=new Date(r.date); const dateStr=d.toLocaleDateString('he-IL');
+        const res=r.result||{};
+        return `<div class="card" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:700">${dateStr}</div>
+            <div style="font-size:12px;color:#9CA3AF">${res.dad_pct||'?'}% אבא · ${res.mom_pct||'?'}% אמא</div>
+          </div>
+          <button class="btn-sec" style="width:auto;padding:8px 16px;margin:0" onclick="viewOldReport(${i})">צפו ←</button>
+        </div>`;
+      }).join('')
+    : `<div class="disclaimer">עדיין אין דוחות שמורים. נתחו תמונה כדי להתחיל!</div>`;
+
+  document.getElementById('profile-content').innerHTML = `
+    <div class="card" style="text-align:center">
+      <div style="font-size:40px;margin-bottom:8px">👤</div>
+      <div style="font-size:18px;font-weight:800">${p.name||''}</div>
+      <div style="font-size:13px;color:#9CA3AF">${p.phone||''}</div>
+    </div>
+    ${statusHtml}
+    <div style="font-size:14px;font-weight:800;margin:18px 0 10px">📜 היסטוריית דוחות</div>
+    ${reportsHtml}
+  `;
+}
+function viewOldReport(i){
+  const p=userProfile; if(!p||!p.reports||!p.reports[i]) return;
+  result=p.reports[i].result;
+  paid=true;
+  nav('s-results'); setNav('nav-results'); renderResults();
+}
+
+// ===== NAV =====
+function nav(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); if(id==='s-upload') updateGoldUI(); }
+function isGoldActive(){ return !!(userProfile && userProfile.plan==='gold' && userProfile.paid); }
+function updateGoldUI(){
+  const el=document.getElementById('gold-siblings');
+  if(el) el.style.display = isGoldActive() ? 'block' : 'none';
+}
+function setNav(id){ document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); if(id) document.getElementById(id).classList.add('active'); }
+
+// ===== UPLOAD =====
+function pick(k){ curPick=k; document.getElementById('file-in').click(); }
+function gotFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=(ev)=>{
+    IMGS[curPick]=ev.target.result;
+    document.getElementById('u-'+curPick).classList.add('done');
+    document.getElementById('uc-'+curPick).innerHTML=`<img src="${ev.target.result}" style="width:60px;height:60px;border-radius:12px;object-fit:cover;border:2px solid #14B8A6"><div style="font-size:10px;color:#14B8A6;margin-top:4px;font-weight:700">✓ הועלה</div>`;
+    updateUpload();
+  };
+  r.readAsDataURL(f); e.target.value='';
+}
+function updateUpload(){
+  const coreKeys=['baby','mom','dad','gpa','gma'];
+  const cnt=coreKeys.filter(k=>IMGS[k]).length;
+  const ok=IMGS.baby&&(IMGS.mom||IMGS.dad);
+  document.getElementById('ucount').textContent=cnt+'/5';
+  document.getElementById('uprog').style.width=(cnt/5*100)+'%';
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=!ok; btn.style.opacity=ok?'1':'0.4';
+  document.getElementById('ustatus').textContent=!IMGS.baby?'⚠️ חובה תמונת ילד':!ok?'⚠️ הוסיפו הורה אחד לפחות':'✅ מוכן לניתוח!';
+}
+
+// ===== COMPRESS =====
+function compress(dataUrl, maxPx=400){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    const timer=setTimeout(()=>rej(new Error('תמונה לא נטענה בזמן')),10000);
+    img.onload=()=>{
+      clearTimeout(timer);
+      const c=document.createElement('canvas');
+      let w=img.width,h=img.height;
+      if(w>maxPx||h>maxPx){ if(w>h){h=Math.round(h*maxPx/w);w=maxPx;}else{w=Math.round(w*maxPx/h);h=maxPx;} }
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',0.7));
+    };
+    img.onerror=()=>{ clearTimeout(timer); rej(new Error('תמונה פגומה או לא נתמכת')); };
+    img.src=dataUrl;
+  });
+}
+
+// ===== AI CALL =====
+async function callAI(msgOrContent, maxTok=800, model='claude-sonnet-4-6'){
+  const messages=(Array.isArray(msgOrContent)&&msgOrContent[0]?.role)?msgOrContent:[{role:'user',content:msgOrContent}];
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),75000);
+  let res;
+  try{
+    res=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages,max_tokens:maxTok,model}),signal:controller.signal});
+  }catch(e){
+    if(e.name==='AbortError') throw new Error('הניתוח לוקח יותר מדי זמן. בדקו חיבור ונסו שוב.');
+    throw e;
+  }finally{ clearTimeout(timer); }
+  if(!res.ok) throw new Error('שגיאת שרת '+res.status);
+  const data=await res.json();
+  if(data.error) throw new Error(JSON.stringify(data.error));
+  return (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+}
+
+// ===== ANALYSIS =====
+function getDeviceId(){
+  let id=localStorage.getItem('fm_device_id');
+  if(!id){ id='dev_'+Date.now()+'_'+Math.random().toString(36).slice(2,10); localStorage.setItem('fm_device_id',id); }
+  return id;
+}
+async function startAnalysis(){
+  const isPaidNow = !!(leadInfo && userProfile && computeAllowFull(userProfile));
+  if(!isPaidNow){
+    try{
+      const ctrl=new AbortController();
+      const t=setTimeout(()=>ctrl.abort(),8000);
+      const res=await fetch('/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'checkDevice',deviceId:getDeviceId()}),signal:ctrl.signal});
+      clearTimeout(t);
+      const data=await res.json();
+      if(data.ok && data.freeUsed){
+        alert('כבר ניצלתם את הניתוח החינמי במכשיר הזה. שדרגו לחבילה כדי לנתח ילד נוסף.');
+        nav('s-plans'); setNav('nav-pay');
+        return;
+      }
+    }catch(e){ console.error(e); /* fail open on network error or timeout */ }
+  }
+  nav('s-analyzing'); setNav('');
+  const steps=['מכינים תמונות...','AI מנתח תווי פנים...','משווה מאפיינים...','מחשב אחוזים...','בונה מפת פנים...','✨ הדו"ח מוכן!'];
+  const sc=document.getElementById('steps');
+  sc.innerHTML=steps.map((s,i)=>`<div class="step-row" id="st${i}"><span id="si${i}">⬜</span> ${s}</div>`).join('');
+  let si=0;
+  const iv=setInterval(()=>{ if(si>0){document.getElementById('st'+(si-1)).classList.remove('active');document.getElementById('si'+(si-1)).textContent='✅';} if(si<steps.length-1){document.getElementById('st'+si).classList.add('active','done');document.getElementById('si'+si).textContent='⚡';si++;}else clearInterval(iv); },950);
+  try{
+    const LBL={baby:'הילד/ה הראשון/ה',mom:'האמא',dad:'האבא',gpa:'הסבא',gma:'הסבתא',baby2:'הילד/ה השני/ה',baby3:'הילד/ה השלישי/ה'};
+    const gold=isGoldActive();
+    const content=[];
+    for(const [k,v] of Object.entries(IMGS).filter(([,v])=>v)){
+      const c=await compress(v,400);
+      content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:c.split(',')[1]}});
+      content.push({type:'text',text:`התמונה: ${LBL[k]}`});
+    }
+    const siblingCount=[IMGS.baby2,IMGS.baby3].filter(Boolean).length;
+    const featureList = gold
+      ? `[{"name":"עיניים","from":"שם","pct":80,"color":"#8B5CF6","detail":"תיאור"},{"name":"אף","from":"שם","pct":70,"color":"#EC4899","detail":"תיאור"},{"name":"שפתיים","from":"שם","pct":65,"color":"#14B8A6","detail":"תיאור"},{"name":"סנטר","from":"שם","pct":60,"color":"#F59E0B","detail":"תיאור"},{"name":"צורת הפנים","from":"שם","pct":72,"color":"#A78BFA","detail":"תיאור"},{"name":"גבות","from":"שם","pct":58,"color":"#22C55E","detail":"תיאור"},{"name":"מצח","from":"שם","pct":62,"color":"#3B82F6","detail":"תיאור"},{"name":"אוזניים","from":"שם","pct":54,"color":"#F472B6","detail":"תיאור"}]`
+      : `[{"name":"עיניים","from":"שם","pct":80,"color":"#8B5CF6","detail":"תיאור"},{"name":"אף","from":"שם","pct":70,"color":"#EC4899","detail":"תיאור"},{"name":"שפתיים","from":"שם","pct":65,"color":"#14B8A6","detail":"תיאור"},{"name":"סנטר","from":"שם","pct":60,"color":"#F59E0B","detail":"תיאור"},{"name":"צורת הפנים","from":"שם","pct":72,"color":"#A78BFA","detail":"תיאור"}]`;
+    const siblingField = siblingCount>0
+      ? `,"siblings_comparison":[{"pair":"ילד/ה 1 וילד/ה 2","note":"תיאור דמיון/הבדל בין האחים"}]`
+      : '';
+    const depthInstruction = gold ? 'בצעו ניתוח מעמיק ומפורט במיוחד, עם תיאורים עשירים לכל תכונה.' : '';
+    content.push({type:'text',text:`נתח דמיון פנים. ${depthInstruction} JSON בלבד:\n{"summary":"משפט","dominant_parent":"שם","dad_pct":55,"mom_pct":45,"features":${featureList},"face_map":{"forehead":{"from":"שם","pct":68},"eyes":{"from":"שם","pct":80},"nose":{"from":"שם","pct":70},"mouth":{"from":"שם","pct":65},"chin":{"from":"שם","pct":60}},"fun_fact":"עובדה","grandparent_note":"ירושה מסבים","next_child":"תחזית"${siblingField}}`});
+    const raw=await callAI(content,gold?1600:1000,gold?'claude-opus-4-7':'claude-sonnet-4-6');
+    result=JSON.parse(raw);
+    if(leadInfo && userProfile){ paid = computeAllowFull(userProfile); }
+    clearInterval(iv); renderResults(); nav('s-results'); setNav('nav-results');
+    if(leadInfo){
+      fetch('/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addReport',phone:leadInfo.phone,report:result})})
+        .then(r=>r.json()).then(data=>{ if(data.ok) userProfile=data.record; }).catch(e=>console.error(e));
+    }
+    if(!isPaidNow){
+      fetch('/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'markDeviceUsed',deviceId:getDeviceId()})}).catch(e=>console.error(e));
+    }
+  }catch(e){
+    clearInterval(iv); console.error('Analysis failed:',e);
+    document.getElementById('err-msg').textContent = e.message || 'שגיאה בניתוח. בדקו חיבור ונסו שוב.';
+    document.getElementById('err-box').style.display='block';
+  }
+}
+
+// ===== RENDER RESULTS =====
+function renderResults(){
+  if(!result) return;
+  const r=result;
+  const LBL={baby:'👶',mom:'👩',dad:'👨',gpa:'👴',gma:'👵'};
+  const photos=Object.entries(IMGS).filter(([,v])=>v).map(([k,src])=>`<div style="text-align:center"><img src="${src}" style="width:50px;height:50px;border-radius:14px;object-fit:cover;border:2px solid rgba(139,92,246,0.3)"><div style="font-size:9px;color:#9CA3AF;margin-top:2px">${LBL[k]}</div></div>`).join('');
+
+  // Face map SVG
+  const fm=r.face_map||{};
+  const fc=(name)=>{ const f=(r.features||[]).find(x=>x.from===name); return f?.color||'#8B5CF6'; };
+  const faceSVG=`<div class="card" style="text-align:center">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#A78BFA">🗺️ מפת פנים ויזואלית</div>
+    <svg width="220" height="280" viewBox="0 0 220 280" style="display:block;margin:0 auto">
+      <ellipse cx="110" cy="140" rx="80" ry="110" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.4)" stroke-width="1.5"/>
+      <ellipse cx="30" cy="140" rx="12" ry="22" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.25)" stroke-width="1"/>
+      <ellipse cx="190" cy="140" rx="12" ry="22" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.25)" stroke-width="1"/>
+      ${fm.forehead?`<ellipse cx="110" cy="65" rx="55" ry="20" fill="${fc(fm.forehead.from)}33" stroke="${fc(fm.forehead.from)}" stroke-width="1.5"/><text x="110" y="69" text-anchor="middle" font-size="9" fill="${fc(fm.forehead.from)}" font-weight="700">מצח ${fm.forehead.pct}%</text>`:''}
+      ${fm.eyes?`<ellipse cx="85" cy="108" rx="16" ry="10" fill="${fc(fm.eyes.from)}44" stroke="${fc(fm.eyes.from)}" stroke-width="1.5"/><ellipse cx="135" cy="108" rx="16" ry="10" fill="${fc(fm.eyes.from)}44" stroke="${fc(fm.eyes.from)}" stroke-width="1.5"/><text x="110" y="124" text-anchor="middle" font-size="9" fill="${fc(fm.eyes.from)}" font-weight="700">עיניים ${fm.eyes.pct}%</text>`:''}
+      ${fm.nose?`<path d="M110 130 L100 155 Q110 159 120 155 Z" fill="${fc(fm.nose.from)}44" stroke="${fc(fm.nose.from)}" stroke-width="1.5"/><text x="110" y="170" text-anchor="middle" font-size="9" fill="${fc(fm.nose.from)}" font-weight="700">אף ${fm.nose.pct}%</text>`:''}
+      ${fm.mouth?`<path d="M90 185 Q110 197 130 185" fill="${fc(fm.mouth.from)}33" stroke="${fc(fm.mouth.from)}" stroke-width="2" stroke-linecap="round"/><text x="110" y="200" text-anchor="middle" font-size="9" fill="${fc(fm.mouth.from)}" font-weight="700">פה ${fm.mouth.pct}%</text>`:''}
+      ${fm.chin?`<ellipse cx="110" cy="228" rx="30" ry="18" fill="${fc(fm.chin.from)}33" stroke="${fc(fm.chin.from)}" stroke-width="1.5"/><text x="110" y="232" text-anchor="middle" font-size="9" fill="${fc(fm.chin.from)}" font-weight="700">סנטר ${fm.chin.pct}%</text>`:''}
+    </svg>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px">
+      ${[...new Set(Object.values(fm).map(v=>v?.from).filter(Boolean))].map(n=>`<div style="display:flex;align-items:center;gap:5px;background:${fc(n)}18;border:1px solid ${fc(n)}44;border-radius:99px;padding:3px 10px;font-size:11px;color:${fc(n)}">${n}</div>`).join('')}
+    </div>
+  </div>`;
+
+  const maxFeat = isGoldActive() ? 8 : (paid?5:0);
+  const totalFeat = (r.features||[]).length;
+  const feats=(r.features||[]).slice(0,maxFeat).map((f,i)=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span style="font-weight:700">${f.name}</span>
+        <span style="color:${f.color};font-weight:700">מ${f.from} · ${f.pct}%</span>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${f.pct}%;background:linear-gradient(90deg,${f.color},${f.color}88)"></div></div>
+      ${f.detail?`<div style="font-size:11px;color:#9CA3AF;margin-top:3px">${f.detail}</div>`:''}
+    </div>`).join('');
+
+  const everPaid = !!(userProfile && userProfile.paid);
+  const wasCancelled = !!(userProfile && !userProfile.paid && userProfile.cancelledAt);
+  const paymentFailed = !!(userProfile && !userProfile.paid && userProfile.paymentFailedAt && !userProfile.cancelledAt);
+  const teaserFeats = (r.features||[]).slice(maxFeat).map(f=>`
+    <div style="position:relative;margin-bottom:8px">
+      <div style="filter:blur(5px);display:flex;justify-content:space-between;align-items:center;padding:7px 0">
+        <span style="font-size:13px;font-weight:700">${f.name}</span>
+        <span style="color:${f.color};font-weight:700;font-size:13px">מ${f.from} · ${f.pct}%</span>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px">🔒</div>
+    </div>`).join('');
+  const lockBox=!paid?(everPaid?`<div style="background:rgba(0,0,0,0.6);border:1px dashed #F59E0B;border-radius:14px;padding:16px;text-align:center;margin-top:10px">
+    <div style="font-size:18px;margin-bottom:6px">📅</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">המכסה החודשית נוצלה</div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">תתחדש בתחילת החודש הבא</div>
+    <button class="btn-stripe" onclick="nav('s-plans');setNav('nav-pay')">💎 שדרגו חבילה</button>
+  </div>`:(wasCancelled?`<div style="background:rgba(0,0,0,0.6);border:1px dashed #EC4899;border-radius:14px;padding:16px;text-align:center;margin-top:10px">
+    <div style="font-size:18px;margin-bottom:6px">👋</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">המנוי שלכם בוטל</div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">תוכלו להירשם שוב בכל עת</div>
+    <button class="btn-stripe" onclick="nav('s-plans');setNav('nav-pay')">💎 הצטרפו מחדש</button>
+  </div>`:(paymentFailed?`<div style="background:rgba(0,0,0,0.6);border:1px dashed #EF4444;border-radius:14px;padding:16px;text-align:center;margin-top:10px">
+    <div style="font-size:18px;margin-bottom:6px">⚠️</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">החיוב האחרון נכשל</div>
+    <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">בדקו את פרטי האשראי בסטרייפ ונסו שוב</div>
+    <button class="btn-teal" onclick="requireLead(refreshStatus)">🔄 בדקו סטטוס תשלום</button>
+  </div>`:`<div style="margin-top:6px">
+    ${teaserFeats}
+    <div style="background:rgba(0,0,0,0.5);border:1px dashed #8B5CF6;border-radius:14px;padding:14px;margin-top:8px">
+      <div style="font-size:12px;color:#A78BFA;margin-bottom:8px">🔓 בניתוח המלא תקבלו גם:</div>
+      <div style="font-size:12px;color:#E2D9F3;text-align:right;line-height:2">
+        🗺️ מפת פנים ויזואלית מלאה לפי כל תכונה<br>
+        🌳 אילן יוחסין אינטראקטיבי עם התמונות שלכם<br>
+        👴👵 איזה תכונות ירשתם מהסבים<br>
+        👶 תחזית AI מה יקרה אם יהיה לכם ילד נוסף
+      </div>
+    </div>
+    <button class="btn-stripe" style="margin-top:10px" onclick="requireLead(()=>openStripe('https://buy.stripe.com/4gM5kF6I8aAh4fg0Rc2sM01'))">💳 פתחו הכל – 7.90 ₪</button>
+    <button class="btn-teal" onclick="requireLead(refreshStatus)">🔄 בדקו סטטוס תשלום</button>
+  </div>`))):'';
+
+  const siblingsHtml = (r.siblings_comparison&&r.siblings_comparison.length) ? `<div class="card" style="border-color:rgba(245,158,11,0.4)">
+    <div style="font-size:12px;color:#F59E0B;font-weight:700;margin-bottom:8px">🥇 השוואה בין אחים</div>
+    ${r.siblings_comparison.map(s=>`<div style="font-size:13px;margin-bottom:8px"><strong>${s.pair}:</strong> ${s.note}</div>`).join('')}
+  </div>` : '';
+
+  const certBtn = isGoldActive() ? `<button class="btn-sec" style="border-color:#F59E0B;color:#F59E0B" onclick="downloadCertificate()">🏆 הורידו תעודה מעוצבת</button>` : '';
+  const chatBtn = (userProfile && userProfile.paid && (userProfile.plan==='premium'||userProfile.plan==='gold')) ? `<button class="btn-sec" onclick="openChat()">💬 שאלו את ה-AI</button>` : '';
+
+  document.getElementById('results-content').innerHTML=`
+    ${photos?`<div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">${photos}</div>`:''}
+    <div class="card" style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(236,72,153,0.08));border-color:rgba(139,92,246,0.3);text-align:center">
+      <div style="font-size:13px;color:#9CA3AF;margin-bottom:12px">${r.summary||''}</div>
+      <div style="display:flex;height:12px;border-radius:99px;overflow:hidden;margin-bottom:12px">
+        <div style="width:${r.dad_pct}%;background:linear-gradient(90deg,#8B5CF6,#8B5CF6AA)"></div>
+        <div style="flex:1;background:linear-gradient(90deg,#EC4899AA,#EC4899)"></div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:28px">
+        <div><div style="font-size:38px;font-weight:900;color:#8B5CF6">${r.dad_pct}%</div><div style="font-size:11px;color:#9CA3AF;margin-top:3px">👨 אבא</div></div>
+        <div style="width:1px;background:rgba(255,255,255,0.1)"></div>
+        <div><div style="font-size:38px;font-weight:900;color:#EC4899">${r.mom_pct}%</div><div style="font-size:11px;color:#9CA3AF;margin-top:3px">👩 אמא</div></div>
+      </div>
+      <div style="font-size:13px;color:#F59E0B;font-weight:700;margin-top:10px">🏆 דומה יותר ל${r.dominant_parent}!</div>
+    </div>
+    ${paid?faceSVG:''}
+    ${(paid||maxFeat>0)?`<div class="card"><div style="font-size:14px;font-weight:800;margin-bottom:14px">📊 ניתוח לפי תכונה</div>${feats}${lockBox}</div>`:lockBox}
+    ${(paid&&r.fun_fact)?`<div class="card card-gold"><div style="font-size:12px;color:#F59E0B;font-weight:700;margin-bottom:5px">💡 עובדה מעניינת</div><div style="font-size:13px;line-height:1.6">${r.fun_fact}</div></div>`:''}
+    ${(paid&&r.grandparent_note)?`<div class="card card-teal"><div style="font-size:12px;color:#14B8A6;font-weight:700;margin-bottom:5px">👴👵 ירושה מהסבים</div><div style="font-size:13px;line-height:1.6">${r.grandparent_note}</div></div>`:''}
+    ${r.next_child&&paid?`<div class="card card-pink"><div style="font-size:12px;color:#EC4899;font-weight:700;margin-bottom:5px">👶 תחזית לילד הבא</div><div style="font-size:13px;line-height:1.6">${r.next_child}</div></div>`:''}
+    ${siblingsHtml}
+    <button class="btn-main" onclick="requireLead(()=>{prepShare();nav('s-share');setNav('')})">📤 שתפו</button>
+    <button class="btn-sec" onclick="nav('s-tree');setNav('');renderTree()">🌳 אילן יוחסין</button>
+    ${chatBtn}
+    ${certBtn}
+    ${!paid?`<button class="btn-sec" onclick="nav('s-plans');setNav('nav-pay')">💎 ניתוח מלא – 7.90 ₪</button>`:''}
+    <div class="disclaimer">⚠️ לבידור בלבד · אינו ייעוץ גנטי מקצועי</div>`;
+}
+
+// ===== TREE =====
+function renderTree(){
+  const M=[{k:'gpa',n:'סבא',e:'👴',x:'5%',t:'2%',c:'#F59E0B'},{k:'gma',n:'סבתא',e:'👵',x:'30%',t:'2%',c:'#EC4899'},{k:'dad',n:'אבא',e:'👨',x:'17%',t:'37%',c:'#8B5CF6',big:true},{k:'mom',n:'אמא',e:'👩',x:'67%',t:'37%',c:'#EC4899',big:true},{k:'baby',n:'הילד/ה',e:'👶',x:'42%',t:'70%',c:'#F59E0B',big:true}];
+  document.getElementById('tree-nodes').innerHTML=M.map(m=>`<div style="position:absolute;left:${m.x};top:${m.t};transform:translateX(-50%);text-align:center;z-index:2"><div style="width:${m.big?60:48}px;height:${m.big?60:48}px;border-radius:50%;border:2px solid ${m.c};background:${m.c}18;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0 auto">${IMGS[m.k]?`<img src="${IMGS[m.k]}" style="width:100%;height:100%;object-fit:cover">`:`<span style="font-size:${m.big?26:20}px">${m.e}</span>`}</div><div style="font-size:${m.big?10:8}px;color:${m.c};font-weight:700;margin-top:3px;white-space:nowrap">${m.n}</div></div>`).join('');
+  if(result?.features) document.getElementById('tree-feats').innerHTML=`<div class="card">${result.features.map(f=>`<div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:13px"><span>${f.name}</span><span style="color:${f.color};font-weight:700">מ${f.from}</span></div>`).join('')}</div>`;
+}
+
+async function downloadCertificate(){
+  if(!result) return;
+  document.getElementById('cert-pcts').innerHTML = `<span style="color:#8B5CF6">${result.dad_pct}%</span> <span style="color:#9CA3AF;font-size:28px">אבא</span> &nbsp;·&nbsp; <span style="color:#EC4899">${result.mom_pct}%</span> <span style="color:#9CA3AF;font-size:28px">אמא</span>`;
+  document.getElementById('cert-summary').textContent = result.summary || '';
+  document.getElementById('cert-date').textContent = new Date().toLocaleDateString('he-IL');
+  try{
+    const el=document.getElementById('cert-template');
+    const canvas=await html2canvas(el,{scale:2,backgroundColor:'#0A0614'});
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[canvas.width/2,canvas.height/2]});
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,canvas.width/2,canvas.height/2);
+    pdf.save('familymirror-certificate.pdf');
+  }catch(e){ console.error(e); alert('שגיאה ביצירת התעודה, נסו שוב.'); }
+}
+// ===== PAID STATUS (server-verified via Stripe webhook) =====
+function computeAllowFull(p){
+  if(!p || !p.paid) return false;
+  if(p.plan==='premium' || p.plan==='gold') return true;
+  if(p.plan==='one_time') return true;
+  if(p.plan==='basic'){
+    const m=new Date().toISOString().slice(0,7);
+    if(!p.usage || p.usage.month!==m) return true;
+    return p.usage.count<1;
+  }
+  return false;
+}
+async function refreshStatus(){
+  if(!leadInfo) return;
+  try{
+    const res=await fetch('/profile?phone='+encodeURIComponent(leadInfo.phone));
+    const data=await res.json();
+    if(data.found){
+      userProfile=data.record;
+      paid=computeAllowFull(userProfile);
+      if(result){ renderResults(); nav('s-results'); setNav('nav-results'); }
+      if(!userProfile.paid){ alert('עדיין לא מצאנו תשלום מאומת. אם שילמתם הרגע, נסו שוב בעוד כמה שניות.'); }
+      else if(!paid){ alert('המכסה החודשית שלכם נוצלה. היא תתחדש בתחילת החודש הבא, או שתוכלו לשדרג חבילה.'); }
+    } else {
+      alert('לא מצאנו תשלום מאומת עבור המספר הזה.');
+    }
+  }catch(e){ console.error(e); alert('שגיאה בבדיקת הסטטוס, נסו שוב.'); }
+}
+
+// ===== SHARE =====
+function prepShare(){
+  if(!result) return;
+  const r=result;
+  const LBL={baby:'👶',mom:'👩',dad:'👨',gpa:'👴',gma:'👵'};
+  document.getElementById('share-photos').innerHTML=Object.entries(IMGS).filter(([,v])=>v).slice(0,4).map(([k,src])=>`<img src="${src}" style="width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #8B5CF6">`).join('');
+  document.getElementById('share-text').innerHTML=`<div style="font-size:24px;font-weight:900;margin-bottom:6px"><span style="color:#8B5CF6">${r.dad_pct}%</span> אבא · <span style="color:#EC4899">${r.mom_pct}%</span> אמא</div><div style="font-size:13px;color:#9CA3AF">${r.summary||''}</div>`;
+  shareMsg=`🧬 FamilyMirror\n\nהילד שלנו דומה ${r.dad_pct}% לאבא ו-${r.mom_pct}% לאמא!\n${r.summary||''}\n\nנסו גם אתם:\nfamilymirror.pages.dev\n\n* לבידור בלבד`;
+}
+function copyShare(){ navigator.clipboard?.writeText(shareMsg).then(()=>{ document.getElementById('copy-btn').textContent='✅ הועתק!'; setTimeout(()=>document.getElementById('copy-btn').textContent='📋 העתיקו טקסט בלבד',2500); }); }
+
+// ===== IMAGE EXPORT (download / native share) =====
+async function captureCard(){
+  const card=document.getElementById('share-card');
+  return await html2canvas(card,{scale:2,backgroundColor:'#0A0614',useCORS:true});
+}
+async function downloadReport(){
+  const btn=document.getElementById('dl-btn'); const orig=btn.textContent;
+  btn.textContent='⏳ מכינים תמונה...'; btn.disabled=true;
+  try{
+    const canvas=await captureCard();
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download='familymirror-report.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    btn.textContent='✅ ירד לטלפון!';
+  }catch(e){ console.error(e); btn.textContent='⚠️ לא הצליח, נסו שוב'; }
+  setTimeout(()=>{btn.textContent=orig; btn.disabled=false;},2500);
+}
+async function shareReportImage(){
+  const btn=document.getElementById('wa-share-btn'); const orig=btn.textContent;
+  btn.textContent='⏳ מכינים תמונה...'; btn.disabled=true;
+  try{
+    const canvas=await captureCard();
+    canvas.toBlob(async (blob)=>{
+      const file=new File([blob],'familymirror-report.png',{type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{
+          await navigator.share({files:[file],title:'FamilyMirror',text:shareMsg});
+          btn.textContent=orig; btn.disabled=false; return;
+        }catch(e){ /* user cancelled or unsupported, fall through */ }
+      }
+      window.open(`https://wa.me/?text=${encodeURIComponent(shareMsg)}`,'_blank');
+      btn.textContent=orig; btn.disabled=false;
+    },'image/png');
+  }catch(e){ console.error(e); btn.textContent='⚠️ לא הצליח, נסו שוב'; setTimeout(()=>{btn.textContent=orig; btn.disabled=false;},2500); }
+}
+
+// ===== QUESTIONNAIRE =====
+const QS=[
+  {q:"מה צבע עיני הילד?",o:["חום כהה","חום בהיר","ירוק","כחול","אפור"]},
+  {q:"מה סוג שיער הילד?",o:["חלק","גלי קל","גלי","מסולסל","מקורזל"]},
+  {q:"מה גוון עור הילד?",o:["בהיר מאוד","בהיר","בינוני","כהה","כהה מאוד"]},
+  {q:"גובה ממוצע ההורים?",o:["מתחת ל-160","160–165","165–170","170–175","מעל 175"]},
+  {q:"האם יש קירחות אצל גברים?",o:["כן, נפוץ","קצת","לא","לא יודע"]},
+  {q:"צבע שיער טבעי של ההורים?",o:["שחור","חום כהה","חום בהיר","ג'ינג'י","בלונד"]},
+  {q:"האם יש אלרגיות במשפחה?",o:["הרבה","קצת","לא","לא יודע"]},
+  {q:"האם יש מוזיקליות במשפחה?",o:["מאוד","קצת","לא ממש","בכלל לא"]},
+  {q:"האם יש ספורטאים במשפחה?",o:["הרבה","קצת","לא","לא יודע"]},
+  {q:"דומיננטיות יד?",o:["ימניים רובם","שמאליים רובם","מעורב"]},
+  {q:"האם יש אי-סבילות ללקטוז?",o:["כן, נפוץ","קצת","לא","לא יודע"]},
+  {q:"האם יש סכרת סוג 2?",o:["כן, נפוץ","קצת","לא","לא יודע"]},
+  {q:"דפוס שינה טיפוסי?",o:["מוקדם – עפרוניים","מאוחר – ינשופים","מעורב"]},
+  {q:"האם יש כישרון ציור/אמנות?",o:["מאוד","קצת","לא ממש","בכלל לא"]},
+  {q:"האם יש נטייה לחרדה?",o:["כן, נפוץ","קצת","לא","לא יודע"]},
+  {q:"גיל התבגרות בנות?",o:["מוקדם לפני 11","רגיל 11–13","מאוחר אחרי 13","לא יודע"]},
+  {q:"האם יש עור רגיש?",o:["כן, נפוץ","קצת","לא","לא יודע"]},
+  {q:"בני המשפחה נוטים להיות?",o:["מופנמים","קצת מופנמים","מעורב","קצת מוחצנים","מוחצנים"]},
+  {q:"האם יש כישרון מתמטי/מדעי?",o:["מאוד","קצת","לא ממש","בכלל לא"]},
+  {q:"נטייה לעלייה במשקל?",o:["כן, נפוץ","קצת","לא","מטבוליזם מהיר"]}
+];
+
+function renderQ(){
+  const q=QS[curQ];
+  document.getElementById('q-prog-text').textContent=`שאלה ${curQ+1} מתוך ${QS.length}`;
+  document.getElementById('q-prog').style.width=((curQ+1)/QS.length*100)+'%';
+  document.getElementById('q-box').innerHTML=`<div class="q-card"><div style="font-size:14px;font-weight:700;margin-bottom:10px;line-height:1.4">${q.q}</div><div>${q.o.map((o,i)=>`<span class="q-opt ${qAnswers[curQ]===i?'sel':''}" onclick="pickQ(${i})">${o}</span>`).join('')}</div></div>`;
+  document.getElementById('q-prev').style.display=curQ>0?'block':'none';
+  document.getElementById('q-next').textContent=curQ===QS.length-1?'🔮 קבלו תחזיות!':'הבאה ←';
+}
+function pickQ(i){ qAnswers[curQ]=i; document.querySelectorAll('.q-opt').forEach((b,j)=>b.classList.toggle('sel',j===i)); }
+function qNext(){ if(qAnswers[curQ]===undefined){alert('אנא בחרו תשובה');return;} if(curQ<QS.length-1){curQ++;renderQ();}else analyzeQ(); }
+function qPrev(){ if(curQ>0){curQ--;renderQ();} }
+
+async function analyzeQ(){
+  nav('s-qresults'); setNav('nav-q');
+  document.getElementById('qr-content').innerHTML=`<div style="text-align:center;padding:40px 0"><div class="spinner"></div><div style="font-size:14px;color:#9CA3AF;margin-top:16px">AI מנתח 20 תשובות...</div><div style="max-width:280px;margin:18px auto 0;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px 14px"><div style="font-size:12px;color:#FBBF24;line-height:1.6">⏳ זה יכול לקחת עד דקה<br>אל תצאו מהדף ואל תרעננו</div></div></div>`;
+  const txt=QS.map((q,i)=>`${q.q}: ${qAnswers[i]!==undefined?q.o[qAnswers[i]]:'לא ענה'}`).join('\n');
+  try{
+    const raw=await callAI([{role:'user',content:`שאלון גנטי. JSON בלבד:\n${txt}\n\n{"headline":"כותרת","personality_type":"סוג אישיות גנטי","predictions":[{"title":"כותרת","text":"תחזית","icon":"אמוג'י","prob":75},{"title":"כותרת","text":"תחזית","icon":"אמוג'י","prob":60},{"title":"כותרת","text":"תחזית","icon":"אמוג'י","prob":80},{"title":"כותרת","text":"תחזית","icon":"אמוג'י","prob":55},{"title":"כותרת","text":"תחזית","icon":"אמוג'י","prob":70}],"strengths":["כוח 1","כוח 2","כוח 3"],"watch_for":["שים לב 1","שים לב 2"],"fun_genetics_fact":"עובדה","next_child_prediction":"תחזית לילד הבא"}`}],1800);
+    let r;
+    try{ r=JSON.parse(raw); }
+    catch(parseErr){ console.error('Questionnaire JSON parse failed. Raw response:',raw); throw parseErr; }
+    document.getElementById('qr-content').innerHTML=`
+      <div class="card" style="text-align:center;margin-bottom:14px">
+        <div style="font-size:11px;color:#A78BFA;margin-bottom:6px">הפרופיל הגנטי שלכם</div>
+        <div style="font-size:20px;font-weight:900;margin-bottom:4px">${r.personality_type||''}</div>
+        <div style="font-size:13px;color:#9CA3AF;line-height:1.6">${r.headline||''}</div>
+      </div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:12px">🔮 תחזיות AI</div>
+      ${(r.predictions||[]).map(p=>`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:8px;align-items:center"><span style="font-size:20px">${p.icon}</span><span style="font-size:14px;font-weight:700">${p.title}</span></div><div style="background:rgba(20,184,166,0.2);border:1px solid #14B8A6;border-radius:99px;padding:2px 10px;font-size:12px;color:#14B8A6;font-weight:700">${p.prob}%</div></div><div style="font-size:13px;color:#9CA3AF;margin-bottom:8px">${p.text}</div><div class="bar-wrap"><div class="bar-fill" style="width:${p.prob}%;background:linear-gradient(90deg,#8B5CF6,#14B8A6)"></div></div></div>`).join('')}
+      ${r.strengths?.length?`<div class="card card-teal"><div style="font-size:12px;color:#14B8A6;font-weight:700;margin-bottom:8px">💪 חוזקות גנטיות</div>${r.strengths.map(s=>`<div style="font-size:13px;margin-bottom:5px">✓ ${s}</div>`).join('')}</div>`:''}
+      ${r.watch_for?.length?`<div class="card card-gold"><div style="font-size:12px;color:#F59E0B;font-weight:700;margin-bottom:8px">👁️ שווה לשים לב</div>${r.watch_for.map(s=>`<div style="font-size:13px;margin-bottom:5px">⚠️ ${s}</div>`).join('')}</div>`:''}
+      ${r.fun_genetics_fact?`<div class="card card-pink"><div style="font-size:12px;color:#EC4899;font-weight:700;margin-bottom:5px">🔬 עובדה מדעית</div><div style="font-size:13px;line-height:1.6">${r.fun_genetics_fact}</div></div>`:''}
+      ${r.next_child_prediction?`<div class="card"><div style="font-size:12px;color:#A78BFA;font-weight:700;margin-bottom:5px">👶 תחזית לילד הבא</div><div style="font-size:13px;line-height:1.6">${r.next_child_prediction}</div></div>`:''}
+      <div class="disclaimer">⚠️ לבידור בלבד · אינו ייעוץ גנטי או רפואי</div>`;
+  }catch(e){ console.error('Questionnaire analysis failed:',e); document.getElementById('qr-content').innerHTML=`<div class="card"><div style="color:#EC4899">שגיאה בניתוח השאלון. נסו שוב.</div><div style="font-size:11px;color:#6B6280;margin-top:8px">אם זה ממשיך לקרות, בדקו את הקונסול (F12) לפרטים</div></div>`; }
+}
+
+// ===== AI CHAT AGENT (premium/gold only) =====
+let chatHistory=[];
+function openChat(){
+  if(!userProfile || !userProfile.paid || !(userProfile.plan==='premium'||userProfile.plan==='gold')){
+    alert("הצ'אט עם ה-AI פתוח למנויי פרימיום וגולד.");
+    nav('s-plans'); setNav('nav-pay');
+    return;
+  }
+  nav('s-chat'); setNav(''); renderChat();
+}
+function chatLimit(){ return userProfile?.plan==='gold' ? 25 : 10; }
+function chatUsed(){
+  const m=new Date().toISOString().slice(0,7);
+  return (userProfile?.chatUsage && userProfile.chatUsage.month===m) ? userProfile.chatUsage.count : 0;
+}
+function renderChat(){
+  document.getElementById('chat-quota-label').textContent = `נשארו ${Math.max(chatLimit()-chatUsed(),0)} שאלות החודש`;
+  document.getElementById('chat-messages').innerHTML = chatHistory.map(m=>`
+    <div style="margin-bottom:10px;text-align:${m.role==='user'?'right':'left'}">
+      <div style="display:inline-block;max-width:85%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5;background:${m.role==='user'?'rgba(139,92,246,0.25)':'rgba(255,255,255,0.06)'}">${m.text}</div>
+    </div>`).join('');
+}
+async function sendChat(){
+  const input=document.getElementById('chat-input');
+  const msg=input.value.trim();
+  if(!msg || !leadInfo) return;
+  chatHistory.push({role:'user',text:msg});
+  input.value=''; renderChat();
+  try{
+    const res=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:leadInfo.phone,message:msg})});
+    const data=await res.json();
+    if(data.ok){
+      chatHistory.push({role:'ai',text:data.answer});
+      if(!userProfile.chatUsage) userProfile.chatUsage={month:new Date().toISOString().slice(0,7),count:0};
+      userProfile.chatUsage.count=(userProfile.chatUsage.count||0)+1;
+    }else if(data.error==='quota_exceeded'){
+      chatHistory.push({role:'ai',text:'הגעתם למכסת השאלות החודשית. היא תתחדש בתחילת החודש הבא, או שתוכלו לשדרג חבילה.'});
+    }else{
+      chatHistory.push({role:'ai',text:'משהו השתבש, נסו שוב.'});
+    }
+  }catch(e){ console.error(e); chatHistory.push({role:'ai',text:'שגיאת תקשורת, נסו שוב.'}); }
+  renderChat();
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded',()=>{ curQ=0; qAnswers={}; renderQ(); });
+
+// ===== PWA INSTALL =====
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const btn=document.getElementById('install-btn');
+  if(btn) btn.style.display='block';
+});
+async function installApp(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const choice=await deferredInstallPrompt.userChoice;
+  if(choice.outcome==='accepted'){
+    document.getElementById('install-btn').style.display='none';
+  }
+  deferredInstallPrompt=null;
+}
+window.addEventListener('appinstalled',()=>{
+  const btn=document.getElementById('install-btn');
+  if(btn) btn.style.display='none';
+});
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').catch(e=>console.error('SW failed:',e));
+  });
+}
+</script>
+</body>
+</html>
